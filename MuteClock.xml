@@ -1,0 +1,216 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
+	<Script file="MuteClock.lua"/>
+
+	<Frame name="ClockFrame" frameStrata="HIGH" toplevel="true" movable="true" enableMouse="true" parent="UIParent">
+		<Size>
+			<AbsDimension x="16" y="16"/>
+		</Size>
+		<TitleRegion setAllPoints="true"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="ClockDot" file="Interface\Buttons\WHITE8X8" setAllPoints="true"/>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnLoad>Clock_OnLoad();</OnLoad>
+			<OnUpdate>Clock_OnUpdate(arg1);</OnUpdate>
+			<OnEvent>Clock_OnEvent(event);</OnEvent>
+			<OnEnter>doShowTooltip();</OnEnter>
+			<OnLeave>GameTooltip:Hide();</OnLeave>
+			<OnMouseDown>ClickHandler(arg1, "DOWN");</OnMouseDown>
+			<OnMouseUp>ClickHandler(arg1, "UP");</OnMouseUp>
+		</Scripts>
+	</Frame>
+
+	<Frame name="MuteClockConfigFrame" toplevel="true" parent="UIParent" frameStrata="DIALOG" hidden="true" enableMouse="true">
+		<Size><AbsDimension x="260" y="395"/></Size>
+		<Anchors><Anchor point="CENTER"/></Anchors>
+		<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+			<BackgroundInsets><AbsInset left="11" right="12" top="12" bottom="11"/></BackgroundInsets>
+			<TileSize><AbsValue val="32"/></TileSize>
+			<EdgeSize><AbsValue val="32"/></EdgeSize>
+		</Backdrop>
+		<Layers>
+			<Layer level="ARTWORK">
+				<Texture file="Interface\DialogFrame\UI-DialogBox-Header">
+					<Size><AbsDimension x="260" y="58"/></Size>
+					<Anchors>
+						<Anchor point="TOP"><Offset><AbsDimension x="0" y="12"/></Offset></Anchor>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<FontString inherits="GameFontNormal" text="MuteClock">
+					<Anchors>
+						<Anchor point="TOP" relativeTo="$parent"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+
+			<CheckButton name="$parentCheckButtonShowAllCharacters" inherits="OptionsCheckButtonTemplate">
+				<Size><AbsDimension x="20" y="20"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent">
+						<Offset><AbsDimension x="20" y="-40"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>getglobal(this:GetName().."Text"):SetText(" Track all characters");</OnLoad>
+					<OnClick>doConfigSave();</OnClick>
+				</Scripts>
+			</CheckButton>
+
+			<CheckButton name="$parentCheckButtonDoNotify" inherits="OptionsCheckButtonTemplate">
+				<Size><AbsDimension x="20" y="20"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonShowAllCharacters">
+						<Offset><AbsDimension x="0" y="-22"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>getglobal(this:GetName().."Text"):SetText(" Chat alert on expiry");</OnLoad>
+					<OnClick>doConfigSave();</OnClick>
+				</Scripts>
+			</CheckButton>
+
+			<CheckButton name="$parentCheckButtonGroupByCraft" inherits="OptionsCheckButtonTemplate">
+				<Size><AbsDimension x="20" y="20"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonDoNotify">
+						<Offset><AbsDimension x="0" y="-30"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>getglobal(this:GetName().."Text"):SetText(" Group tooltip by craft type");</OnLoad>
+					<OnClick>doConfigSave();</OnClick>
+				</Scripts>
+			</CheckButton>
+
+			<CheckButton name="$parentCheckButtonShowReadyTime" inherits="OptionsCheckButtonTemplate">
+				<Size><AbsDimension x="20" y="20"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonGroupByCraft">
+						<Offset><AbsDimension x="0" y="-22"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>getglobal(this:GetName().."Text"):SetText(" Show ready time (local clock)");</OnLoad>
+					<OnClick>doConfigSave();</OnClick>
+				</Scripts>
+			</CheckButton>
+
+			<Slider name="$parentSliderSize" inherits="OptionsSliderTemplate">
+				<Size><AbsDimension x="200" y="14"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonShowReadyTime">
+						<Offset><AbsDimension x="10" y="-38"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						getglobal(this:GetName().."Text"):SetText("Dot Size (16px)");
+						getglobal(this:GetName().."High"):SetText("32");
+						getglobal(this:GetName().."Low"):SetText("4");
+						this:SetMinMaxValues(4, 32);
+						this:SetValueStep(1);
+					</OnLoad>
+					<OnValueChanged>doConfigSave();</OnValueChanged>
+				</Scripts>
+			</Slider>
+
+			<CheckButton name="$parentCheckButtonSmartIcon" inherits="OptionsCheckButtonTemplate">
+				<Size><AbsDimension x="20" y="20"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentSliderSize">
+						<Offset><AbsDimension x="-10" y="-30"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>getglobal(this:GetName().."Text"):SetText(" SmartIcon: show craft icon when ready");</OnLoad>
+					<OnClick>doConfigSave();</OnClick>
+				</Scripts>
+			</CheckButton>
+
+			<CheckButton name="$parentCheckButtonHideDot" inherits="OptionsCheckButtonTemplate">
+				<Size><AbsDimension x="20" y="20"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonSmartIcon">
+						<Offset><AbsDimension x="0" y="-22"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>getglobal(this:GetName().."Text"):SetText(" Hide dot");</OnLoad>
+					<OnClick>doConfigSave();</OnClick>
+				</Scripts>
+			</CheckButton>
+
+			<Slider name="$parentSliderTooltipX" inherits="OptionsSliderTemplate">
+				<Size><AbsDimension x="200" y="14"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonHideDot">
+						<Offset><AbsDimension x="10" y="-38"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						getglobal(this:GetName().."Text"):SetText("Tooltip X (0)");
+						getglobal(this:GetName().."High"):SetText("200");
+						getglobal(this:GetName().."Low"):SetText("-200");
+						this:SetMinMaxValues(-200, 200);
+						this:SetValueStep(1);
+					</OnLoad>
+					<OnValueChanged>doConfigSave();</OnValueChanged>
+				</Scripts>
+			</Slider>
+
+			<Slider name="$parentSliderTooltipY" inherits="OptionsSliderTemplate">
+				<Size><AbsDimension x="200" y="14"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentSliderTooltipX">
+						<Offset><AbsDimension x="0" y="-35"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnLoad>
+						getglobal(this:GetName().."Text"):SetText("Tooltip Y (-32)");
+						getglobal(this:GetName().."High"):SetText("200");
+						getglobal(this:GetName().."Low"):SetText("-200");
+						this:SetMinMaxValues(-200, 200);
+						this:SetValueStep(1);
+					</OnLoad>
+					<OnValueChanged>doConfigSave();</OnValueChanged>
+				</Scripts>
+			</Slider>
+
+			<Button name="$parentButtonClose" inherits="OptionsButtonTemplate" text="Close">
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT">
+						<Offset><AbsDimension x="-12" y="16"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>MuteClockConfigFrame:Hide();</OnClick>
+				</Scripts>
+			</Button>
+
+			<Button name="$parentButtonToDefault" inherits="OptionsButtonTemplate" text="Defaults">
+				<Anchors>
+					<Anchor point="BOTTOMLEFT">
+						<Offset><AbsDimension x="13" y="16"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>doSetDefaultSettings();</OnClick>
+				</Scripts>
+			</Button>
+
+		</Frames>
+		<Scripts>
+			<OnShow>doInitializeConfig(0);</OnShow>
+		</Scripts>
+	</Frame>
+
+</Ui>
