@@ -2,193 +2,217 @@
 C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 	<Script file="MuteClock.lua"/>
 
+	<!-- ============================================================
+	     ClockFrame  –  the movable dot indicator
+	     ============================================================ -->
 	<Frame name="ClockFrame" frameStrata="HIGH" toplevel="true" movable="true" enableMouse="true" parent="UIParent">
-		<Size>
-			<AbsDimension x="16" y="16"/>
-		</Size>
-		<TitleRegion setAllPoints="true"/>
+		<Size><AbsDimension x="16" y="16"/></Size>
 		<Layers>
 			<Layer level="BACKGROUND">
 				<Texture name="ClockDot" file="Interface\Buttons\WHITE8X8" setAllPoints="true"/>
 			</Layer>
+			<Layer level="OVERLAY">
+				<FontString name="MuteClockBadge" inherits="GameFontNormalSmall" hidden="true">
+					<Anchors>
+						<Anchor point="TOPRIGHT" relativeTo="$parent">
+							<Offset><AbsDimension x="4" y="4"/></Offset>
+						</Anchor>
+					</Anchors>
+					<Shadow><Offset><AbsDimension x="1" y="-1"/></Offset><Color r="0" g="0" b="0" a="1"/></Shadow>
+				</FontString>
+			</Layer>
 		</Layers>
 		<Scripts>
-			<OnLoad>Clock_OnLoad();</OnLoad>
+			<OnLoad>
+				Clock_OnLoad();
+				this:RegisterForDrag("LeftButton");
+			</OnLoad>
 			<OnUpdate>Clock_OnUpdate(arg1);</OnUpdate>
-			<OnEvent>Clock_OnEvent(event);</OnEvent>
+			<OnEvent>Clock_OnEvent();</OnEvent>
 			<OnEnter>doShowTooltip();</OnEnter>
 			<OnLeave>GameTooltip:Hide();</OnLeave>
-			<OnMouseDown>ClickHandler(arg1, "DOWN");</OnMouseDown>
 			<OnMouseUp>ClickHandler(arg1, "UP");</OnMouseUp>
+			<OnDragStart>ClockFrame_OnDragStart();</OnDragStart>
+			<OnDragStop>ClockFrame_OnDragStop();</OnDragStop>
 		</Scripts>
 	</Frame>
 
-	<Frame name="MuteClockConfigFrame" toplevel="true" parent="UIParent" frameStrata="DIALOG" hidden="true" enableMouse="true">
-		<Size><AbsDimension x="260" y="395"/></Size>
-		<Anchors><Anchor point="CENTER"/></Anchors>
-		<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
-			<BackgroundInsets><AbsInset left="11" right="12" top="12" bottom="11"/></BackgroundInsets>
-			<TileSize><AbsValue val="32"/></TileSize>
-			<EdgeSize><AbsValue val="32"/></EdgeSize>
-		</Backdrop>
+	<!-- ============================================================
+	     MinimapButton
+	     ============================================================ -->
+	<Button name="MuteClockMinimapButton" parent="Minimap" frameStrata="HIGH" hidden="true" enableMouse="true" movable="true">
+		<Size><AbsDimension x="20" y="20"/></Size>
 		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="MuteClockMinimapButtonBg" file="Interface\Minimap\MiniMap-TrackingBorder">
+					<Size><AbsDimension x="56" y="56"/></Size>
+					<Anchors><Anchor point="CENTER"/></Anchors>
+				</Texture>
+			</Layer>
 			<Layer level="ARTWORK">
-				<Texture file="Interface\DialogFrame\UI-DialogBox-Header">
-					<Size><AbsDimension x="260" y="58"/></Size>
-					<Anchors>
-						<Anchor point="TOP"><Offset><AbsDimension x="0" y="12"/></Offset></Anchor>
-					</Anchors>
+				<Texture name="MuteClockMinimapButtonIcon" file="Interface\Buttons\WHITE8X8">
+					<Size><AbsDimension x="16" y="16"/></Size>
+					<Anchors><Anchor point="CENTER"/></Anchors>
 				</Texture>
 			</Layer>
 			<Layer level="OVERLAY">
-				<FontString inherits="GameFontNormal" text="MuteClock">
+				<FontString name="MuteClockMinimapBadge" inherits="GameFontNormalSmall" hidden="true">
 					<Anchors>
-						<Anchor point="TOP" relativeTo="$parent"/>
+						<Anchor point="TOPRIGHT" relativeTo="$parent">
+							<Offset><AbsDimension x="4" y="4"/></Offset>
+						</Anchor>
+					</Anchors>
+					<Shadow><Offset><AbsDimension x="1" y="-1"/></Offset><Color r="0" g="0" b="0" a="1"/></Shadow>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnLoad>this:RegisterForDrag("LeftButton");</OnLoad>
+			<OnEnter>doShowMinimapTooltip();</OnEnter>
+			<OnLeave>GameTooltip:Hide();</OnLeave>
+			<OnMouseUp>MinimapButton_OnClick(arg1, "UP");</OnMouseUp>
+			<OnDragStart>MinimapButton_OnDragStart();</OnDragStart>
+			<OnDragStop>MinimapButton_OnDragStop();</OnDragStop>
+			<OnUpdate>MinimapButton_OnUpdate();</OnUpdate>
+		</Scripts>
+	</Button>
+
+	<!-- ============================================================
+	     Config frame   260 x 420
+
+	     OptionsCheckButtonTemplate = 26px tall widget.
+	     We step 32px between checkboxes so there is always ~6px
+	     of genuine air between each row's visual bottom and the next.
+
+	     Vertical budget:
+	       0  .. 28    dark title bar
+	       28 .. 56    tab row: y=-32, h=22, bottom at 54 (2px spare)
+	       56 .. 404   panel (y=-56, h=348)
+	       404.. 420   bottom bar (Reset Defaults at BOTTOMLEFT+10)
+
+	     PanelSettings cumulative Y (from panel TOPLEFT = 0):
+
+	       Divider h=14 (slightly taller frame gives text more room).
+	       Gap: divider → first CB  = 20px
+	       Gap: CB      → CB        = 32px  (26px widget + 6px air)
+	       Gap: last CB → divider   = 28px  (same air, divider on next line)
+	       Gap: divider → slider    = 22px
+	       Slider h=16 visible; step to next CB = 42px
+
+	         0    DivTracking  (h=14)
+	        -20   CBAllChars
+	        -52   CBNotify
+	        -80   DivDisplay          ← 28 after CBNotify
+	       -100   CBGroupByCraft      ← 20 after div
+	       -132   CBReadyTime
+	       -164   CBOverdue
+	       -196   CBLastCrafted
+	       -224   DivDot              ← 28 after CBLastCrafted
+	       -246   SliderSize h=16     ← 22 after div
+	       -288   CBSmartIcon         ← 42 after slider top
+	       -320   CBBadge
+	       -352   CBMinimap           ← would be 320+32=352... but panel h=348
+	
+	     Panel needs to be 380px to safely clear CBMinimap and CBHide.
+	     Frame height = 56 + 380 + 16 = 452.  Round to 460.
+
+	     Revised totals:
+	       Frame:  260 x 460
+	       Panel:  y=-56, h=388
+	         0    DivTracking
+	        -20   CBAllChars
+	        -52   CBNotify
+	        -80   DivDisplay
+	       -100   CBGroupByCraft
+	       -132   CBReadyTime
+	       -164   CBOverdue
+	       -196   CBLastCrafted
+	       -224   DivDot
+	       -246   SliderSize
+	       -288   CBSmartIcon
+	       -320   CBBadge
+	       -352   CBMinimap
+	       -384   CBHide              ← bottom vis ~-410; panel h=388 tight.
+
+	     Give CBHide 26px visible, so bottom = -384-26 = -410. Panel h must
+	     be at least 410+10 = 420.  Set panel h=420, frame = 56+420+16 = 492.
+	     Round frame to 500 for a clean number.  Panel h=428.
+
+	     Final:
+	       Frame  260 x 500
+	       Panel  y=-56  h=428
+	         0    DivTracking
+	        -20   CBAllChars
+	        -52   CBNotify
+	        -84   DivDisplay   (32 after CBNotify, matching CB rhythm)
+	       -104   CBGroupByCraft
+	       -136   CBReadyTime
+	       -168   CBOverdue
+	       -200   CBLastCrafted
+	       -232   DivDot       (32 after CBLastCrafted)
+	       -254   SliderSize   (22 after div)
+	       -298   CBSmartIcon  (44 after slider top — label text above + thumb)
+	       -330   CBBadge
+	       -362   CBMinimap
+	       -394   CBHide       ← bottom vis ~-420; panel h=428 → 8px clear ✓
+	     ============================================================ -->
+	<Frame name="MuteClockConfigFrame" toplevel="true" parent="UIParent" frameStrata="DIALOG" hidden="true" enableMouse="true" movable="true">
+		<Size><AbsDimension x="260" y="500"/></Size>
+		<Anchors><Anchor point="CENTER"/></Anchors>
+		<Backdrop bgFile="Interface\ChatFrame\ChatFrameBackground" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
+			<BackgroundInsets><AbsInset left="3" right="3" top="3" bottom="3"/></BackgroundInsets>
+			<TileSize><AbsValue val="16"/></TileSize>
+			<EdgeSize><AbsValue val="16"/></EdgeSize>
+		</Backdrop>
+		<Layers>
+			<Layer level="OVERLAY">
+				<Texture name="MuteClockConfigFrameTopBar" file="Interface\Buttons\WHITE8X8">
+					<Size><AbsDimension x="260" y="28"/></Size>
+					<Anchors><Anchor point="TOP"/></Anchors>
+					<TexCoords left="0" right="1" top="0" bottom="1"/>
+				</Texture>
+				<FontString name="MuteClockConfigFrameTitle" inherits="GameFontNormal" text="MuteClock">
+					<Anchors>
+						<Anchor point="TOP" relativeTo="$parent">
+							<Offset><AbsDimension x="0" y="-9"/></Offset>
+						</Anchor>
 					</Anchors>
 				</FontString>
 			</Layer>
 		</Layers>
 		<Frames>
 
-			<CheckButton name="$parentCheckButtonShowAllCharacters" inherits="OptionsCheckButtonTemplate">
-				<Size><AbsDimension x="20" y="20"/></Size>
+			<!-- Tab: Settings  y=-32 (4px below bar) -->
+			<Button name="$parentBtnTabSettings" inherits="OptionsButtonTemplate" text="Settings">
+				<Size><AbsDimension x="80" y="22"/></Size>
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parent">
-						<Offset><AbsDimension x="20" y="-40"/></Offset>
+						<Offset><AbsDimension x="10" y="-32"/></Offset>
 					</Anchor>
 				</Anchors>
 				<Scripts>
-					<OnLoad>getglobal(this:GetName().."Text"):SetText(" Track all characters");</OnLoad>
-					<OnClick>doConfigSave();</OnClick>
+					<OnClick>doShowConfigTab("Settings");</OnClick>
 				</Scripts>
-			</CheckButton>
+			</Button>
 
-			<CheckButton name="$parentCheckButtonDoNotify" inherits="OptionsCheckButtonTemplate">
-				<Size><AbsDimension x="20" y="20"/></Size>
+			<!-- Tab: History  4px right of Settings -->
+			<Button name="$parentBtnTabHistory" inherits="OptionsButtonTemplate" text="History">
+				<Size><AbsDimension x="80" y="22"/></Size>
 				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonShowAllCharacters">
-						<Offset><AbsDimension x="0" y="-22"/></Offset>
+					<Anchor point="LEFT" relativeTo="$parentBtnTabSettings" relativePoint="RIGHT">
+						<Offset><AbsDimension x="4" y="0"/></Offset>
 					</Anchor>
 				</Anchors>
 				<Scripts>
-					<OnLoad>getglobal(this:GetName().."Text"):SetText(" Chat alert on expiry");</OnLoad>
-					<OnClick>doConfigSave();</OnClick>
+					<OnClick>doShowConfigTab("History");</OnClick>
 				</Scripts>
-			</CheckButton>
+			</Button>
 
-			<CheckButton name="$parentCheckButtonGroupByCraft" inherits="OptionsCheckButtonTemplate">
-				<Size><AbsDimension x="20" y="20"/></Size>
+			<!-- Close button: 32x32 flush top-right -->
+			<Button name="$parentBtnClose" inherits="UIPanelCloseButton">
 				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonDoNotify">
-						<Offset><AbsDimension x="0" y="-30"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Scripts>
-					<OnLoad>getglobal(this:GetName().."Text"):SetText(" Group tooltip by craft type");</OnLoad>
-					<OnClick>doConfigSave();</OnClick>
-				</Scripts>
-			</CheckButton>
-
-			<CheckButton name="$parentCheckButtonShowReadyTime" inherits="OptionsCheckButtonTemplate">
-				<Size><AbsDimension x="20" y="20"/></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonGroupByCraft">
-						<Offset><AbsDimension x="0" y="-22"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Scripts>
-					<OnLoad>getglobal(this:GetName().."Text"):SetText(" Show ready time (local clock)");</OnLoad>
-					<OnClick>doConfigSave();</OnClick>
-				</Scripts>
-			</CheckButton>
-
-			<Slider name="$parentSliderSize" inherits="OptionsSliderTemplate">
-				<Size><AbsDimension x="200" y="14"/></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonShowReadyTime">
-						<Offset><AbsDimension x="10" y="-38"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Scripts>
-					<OnLoad>
-						getglobal(this:GetName().."Text"):SetText("Dot Size (16px)");
-						getglobal(this:GetName().."High"):SetText("32");
-						getglobal(this:GetName().."Low"):SetText("4");
-						this:SetMinMaxValues(4, 32);
-						this:SetValueStep(1);
-					</OnLoad>
-					<OnValueChanged>doConfigSave();</OnValueChanged>
-				</Scripts>
-			</Slider>
-
-			<CheckButton name="$parentCheckButtonSmartIcon" inherits="OptionsCheckButtonTemplate">
-				<Size><AbsDimension x="20" y="20"/></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentSliderSize">
-						<Offset><AbsDimension x="-10" y="-30"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Scripts>
-					<OnLoad>getglobal(this:GetName().."Text"):SetText(" SmartIcon: show craft icon when ready");</OnLoad>
-					<OnClick>doConfigSave();</OnClick>
-				</Scripts>
-			</CheckButton>
-
-			<CheckButton name="$parentCheckButtonHideDot" inherits="OptionsCheckButtonTemplate">
-				<Size><AbsDimension x="20" y="20"/></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonSmartIcon">
-						<Offset><AbsDimension x="0" y="-22"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Scripts>
-					<OnLoad>getglobal(this:GetName().."Text"):SetText(" Hide dot");</OnLoad>
-					<OnClick>doConfigSave();</OnClick>
-				</Scripts>
-			</CheckButton>
-
-			<Slider name="$parentSliderTooltipX" inherits="OptionsSliderTemplate">
-				<Size><AbsDimension x="200" y="14"/></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentCheckButtonHideDot">
-						<Offset><AbsDimension x="10" y="-38"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Scripts>
-					<OnLoad>
-						getglobal(this:GetName().."Text"):SetText("Tooltip X (0)");
-						getglobal(this:GetName().."High"):SetText("200");
-						getglobal(this:GetName().."Low"):SetText("-200");
-						this:SetMinMaxValues(-200, 200);
-						this:SetValueStep(1);
-					</OnLoad>
-					<OnValueChanged>doConfigSave();</OnValueChanged>
-				</Scripts>
-			</Slider>
-
-			<Slider name="$parentSliderTooltipY" inherits="OptionsSliderTemplate">
-				<Size><AbsDimension x="200" y="14"/></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parentSliderTooltipX">
-						<Offset><AbsDimension x="0" y="-35"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Scripts>
-					<OnLoad>
-						getglobal(this:GetName().."Text"):SetText("Tooltip Y (-32)");
-						getglobal(this:GetName().."High"):SetText("200");
-						getglobal(this:GetName().."Low"):SetText("-200");
-						this:SetMinMaxValues(-200, 200);
-						this:SetValueStep(1);
-					</OnLoad>
-					<OnValueChanged>doConfigSave();</OnValueChanged>
-				</Scripts>
-			</Slider>
-
-			<Button name="$parentButtonClose" inherits="OptionsButtonTemplate" text="Close">
-				<Anchors>
-					<Anchor point="BOTTOMRIGHT">
-						<Offset><AbsDimension x="-12" y="16"/></Offset>
+					<Anchor point="TOPRIGHT" relativeTo="$parent">
+						<Offset><AbsDimension x="0" y="0"/></Offset>
 					</Anchor>
 				</Anchors>
 				<Scripts>
@@ -196,10 +220,305 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 				</Scripts>
 			</Button>
 
-			<Button name="$parentButtonToDefault" inherits="OptionsButtonTemplate" text="Defaults">
+			<!-- ============================================================
+			     SETTINGS PANEL   x=8  y=-56   244 x 428
+			     ============================================================ -->
+			<Frame name="$parentPanelSettings">
+				<Size><AbsDimension x="244" y="428"/></Size>
 				<Anchors>
-					<Anchor point="BOTTOMLEFT">
-						<Offset><AbsDimension x="13" y="16"/></Offset>
+					<Anchor point="TOPLEFT" relativeTo="$parent">
+						<Offset><AbsDimension x="8" y="-56"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Frames>
+
+					<!-- ─── TRACKING ──────────────── y=0 h=14 ─── -->
+					<Frame name="$parentDivTracking">
+						<Size><AbsDimension x="244" y="14"/></Size>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parent">
+								<Offset><AbsDimension x="0" y="0"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Layers>
+							<Layer level="OVERLAY">
+								<FontString inherits="GameFontNormalSmall" text="TRACKING" justifyH="LEFT">
+									<Color r="0.4" g="0.8" b="1"/>
+									<Anchors><Anchor point="LEFT"/></Anchors>
+								</FontString>
+								<!-- "TRACKING" ≈58px; rule = 244-58-8 = 178 -->
+								<Texture name="MuteClockDivTracking" file="Interface\Buttons\WHITE8X8">
+									<Size><AbsDimension x="178" y="1"/></Size>
+									<Anchors><Anchor point="RIGHT"/></Anchors>
+									<TexCoords left="0" right="1" top="0" bottom="1"/>
+								</Texture>
+							</Layer>
+						</Layers>
+					</Frame>
+
+					<!-- CBAllChars  y=-20  (div h=14 + 6px gap) -->
+					<CheckButton name="$parentCBAllChars" inherits="OptionsCheckButtonTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentDivTracking">
+								<Offset><AbsDimension x="0" y="-20"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Track all characters");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Show cooldowns from all your alts,", "not just the current character.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+					<!-- CBNotify  y=-52  (32px step) -->
+					<CheckButton name="$parentCBNotify" inherits="OptionsCheckButtonTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentCBAllChars">
+								<Offset><AbsDimension x="0" y="-32"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Chat alert on expiry");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Posts a chat message and plays a sound", "when a cooldown becomes ready.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+					<!-- ─── DISPLAY ───────────────── y=-84  (32px step matches CB rhythm) ─── -->
+					<Frame name="$parentDivDisplay">
+						<Size><AbsDimension x="244" y="14"/></Size>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentCBNotify">
+								<Offset><AbsDimension x="0" y="-32"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Layers>
+							<Layer level="OVERLAY">
+								<FontString inherits="GameFontNormalSmall" text="DISPLAY" justifyH="LEFT">
+									<Color r="0.4" g="0.8" b="1"/>
+									<Anchors><Anchor point="LEFT"/></Anchors>
+								</FontString>
+								<!-- "DISPLAY" ≈50px; rule = 244-50-8 = 186 -->
+								<Texture name="MuteClockDivDisplay" file="Interface\Buttons\WHITE8X8">
+									<Size><AbsDimension x="186" y="1"/></Size>
+									<Anchors><Anchor point="RIGHT"/></Anchors>
+									<TexCoords left="0" right="1" top="0" bottom="1"/>
+								</Texture>
+							</Layer>
+						</Layers>
+					</Frame>
+
+					<!-- CBGroupByCraft  y=-104  (div h=14 + 6px gap) -->
+					<CheckButton name="$parentCBGroupByCraft" inherits="OptionsCheckButtonTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentDivDisplay">
+								<Offset><AbsDimension x="0" y="-20"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Group tooltip by craft type");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Groups tooltip by craft type", "instead of by character.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+					<!-- CBReadyTime  y=-136 -->
+					<CheckButton name="$parentCBReadyTime" inherits="OptionsCheckButtonTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentCBGroupByCraft">
+								<Offset><AbsDimension x="0" y="-32"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Show ready time");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Shows the clock time when each", "cooldown will be ready.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+					<!-- CBOverdue  y=-168 -->
+					<CheckButton name="$parentCBOverdue" inherits="OptionsCheckButtonTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentCBReadyTime">
+								<Offset><AbsDimension x="0" y="-32"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Show overdue time");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Shows how long a ready craft", "has been waiting. E.g. +2h 15m");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+					<!-- CBLastCrafted  y=-200 -->
+					<CheckButton name="$parentCBLastCrafted" inherits="OptionsCheckButtonTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentCBOverdue">
+								<Offset><AbsDimension x="0" y="-32"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Show last crafted time");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Shows when you last made this item", "next to each tooltip line.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+					<!-- ─── INDICATOR ─────────────── y=-232  (32px step) ─── -->
+					<Frame name="$parentDivDot">
+						<Size><AbsDimension x="244" y="14"/></Size>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentCBLastCrafted">
+								<Offset><AbsDimension x="0" y="-32"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Layers>
+							<Layer level="OVERLAY">
+								<FontString inherits="GameFontNormalSmall" text="INDICATOR" justifyH="LEFT">
+									<Color r="0.4" g="0.8" b="1"/>
+									<Anchors><Anchor point="LEFT"/></Anchors>
+								</FontString>
+								<!-- "INDICATOR" ≈64px; rule = 244-64-8 = 172 -->
+								<Texture name="MuteClockDivDot" file="Interface\Buttons\WHITE8X8">
+									<Size><AbsDimension x="172" y="1"/></Size>
+									<Anchors><Anchor point="RIGHT"/></Anchors>
+									<TexCoords left="0" right="1" top="0" bottom="1"/>
+								</Texture>
+							</Layer>
+						</Layers>
+					</Frame>
+
+					<!-- SliderSize  y=-254  (div h=14 + 8px gap)
+					     OptionsSliderTemplate: label text floats 10px above thumb centre.
+					     Thumb is 16px tall.  Total visual height ~36px.
+					     Step to next control: 44px (gives ~8px air below thumb). -->
+					<Slider name="$parentSliderSize" inherits="OptionsSliderTemplate">
+						<Size><AbsDimension x="214" y="16"/></Size>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentDivDot">
+								<Offset><AbsDimension x="8" y="-22"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>
+								getglobal(this:GetName().."Text"):SetText("Dot Size (16px)");
+								getglobal(this:GetName().."High"):SetText("32");
+								getglobal(this:GetName().."Low"):SetText("4");
+								this:SetMinMaxValues(4, 32);
+								this:SetValueStep(1);
+							</OnLoad>
+							<OnValueChanged>doConfigSave();</OnValueChanged>
+							<OnEnter>ConfigTooltip_Show("Size of the indicator dot in pixels.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</Slider>
+
+					<!-- CBSmartIcon  y=-298  (slider top -254, step 44) -->
+					<CheckButton name="$parentCBSmartIcon" inherits="OptionsCheckButtonTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentSliderSize">
+								<Offset><AbsDimension x="-8" y="-44"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("SmartIcon");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Shows the craft icon instead of the dot", "when a cooldown is ready.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+					<!-- CBBadge  y=-330 -->
+					<CheckButton name="$parentCBBadge" inherits="OptionsCheckButtonTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentCBSmartIcon">
+								<Offset><AbsDimension x="0" y="-32"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Ready count badge");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Shows a number on the icon", "for how many crafts are ready.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+					<!-- CBMinimap  y=-362 -->
+					<CheckButton name="$parentCBMinimap" inherits="OptionsCheckButtonTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentCBBadge">
+								<Offset><AbsDimension x="0" y="-32"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Use minimap button");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Attaches the indicator to the minimap.", "Drag it around the edge to reposition.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+					<!-- CBHide  y=-394
+					     Widget bottom ~-420.  Panel h=428.  8px clear. ✓ -->
+					<CheckButton name="$parentCBHide" inherits="OptionsCheckButtonTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentCBMinimap">
+								<Offset><AbsDimension x="0" y="-32"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Hide indicator");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Hides the dot entirely.", "Use /muteclock show to restore it.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+				</Frames>
+			</Frame>
+
+			<!-- ============================================================
+			     HISTORY PANEL   x=8  y=-56   244 x 428
+			     ScrollFrame 8px shorter for bottom padding.
+			     ============================================================ -->
+			<Frame name="$parentPanelHistory" hidden="true">
+				<Size><AbsDimension x="244" y="428"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent">
+						<Offset><AbsDimension x="8" y="-56"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Frames>
+					<ScrollingMessageFrame name="$parentMsgFrame" maxLines="60">
+						<Size><AbsDimension x="244" y="420"/></Size>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parent">
+								<Offset><AbsDimension x="0" y="0"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnLoad>
+								this:SetFont("Fonts\\FRIZQT__.TTF", 11, "");
+								this:SetFading(false);
+								this:SetJustifyH("LEFT");
+							</OnLoad>
+						</Scripts>
+					</ScrollingMessageFrame>
+				</Frames>
+			</Frame>
+
+			<!-- Reset Defaults  BOTTOMLEFT + 10px margin -->
+			<Button name="$parentBtnDefaults" inherits="OptionsButtonTemplate" text="Reset Defaults">
+				<Size><AbsDimension x="100" y="22"/></Size>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativeTo="$parent">
+						<Offset><AbsDimension x="10" y="10"/></Offset>
 					</Anchor>
 				</Anchors>
 				<Scripts>
@@ -209,7 +528,10 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 
 		</Frames>
 		<Scripts>
+			<OnLoad>MuteClockConfig_OnLoad();</OnLoad>
 			<OnShow>doInitializeConfig(0);</OnShow>
+			<OnDragStart>this:StartMoving();</OnDragStart>
+			<OnDragStop>this:StopMovingOrSizing();</OnDragStop>
 		</Scripts>
 	</Frame>
 
