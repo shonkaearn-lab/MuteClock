@@ -390,6 +390,7 @@ function Clock_OnLoad()
 	SlashCmdList["MUTECLOCK"] = SlashCommandHandler;
 	ClockFrame.TimeSinceLastUpdate = 0;
 	ClockFrame:Hide();
+	ClockFrame:RegisterForDrag("LeftButton");
 	doBadgeInit();
 end
 
@@ -514,6 +515,7 @@ end
 -- Drag and click - main dot
 -- -------------------------------------------------------
 function ClockFrame_OnDragStart()
+	ClockFrame:ClearAllPoints();
 	ClockFrame:StartMoving();
 end
 

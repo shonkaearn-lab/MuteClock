@@ -25,7 +25,6 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 		<Scripts>
 			<OnLoad>
 				Clock_OnLoad();
-				this:RegisterForDrag("LeftButton");
 			</OnLoad>
 			<OnUpdate>Clock_OnUpdate(arg1);</OnUpdate>
 			<OnEvent>Clock_OnEvent();</OnEvent>
