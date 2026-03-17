@@ -1,186 +1,51 @@
-<div align="center">
+# MuteClock
 
-<img src="https://img.shields.io/badge/TurtleWoW-1.12-c8a96e?style=flat-square&labelColor=1a1a1a" />
-<img src="https://img.shields.io/badge/Vanilla_WoW-1.12.1-c8a96e?style=flat-square&labelColor=1a1a1a" />
-<img src="https://img.shields.io/badge/license-MIT-4a9eff?style=flat-square&labelColor=1a1a1a" />
-
-<br /><br />
-
-```
-╔═══════════════════════════════╗
-║   M U T E C L O C K           ║
-║   Craft Cooldown Tracker       ║
-╚═══════════════════════════════╝
-```
-
-Tracks long profession cooldowns across all your characters. A coloured dot on your screen tells you what's ready.
-
-[Features](#features) · [Install](#install) · [Usage](#usage) · [Config](#config) · [Commands](#commands)
-
-</div>
+A minimal cooldown tracker for vanilla WoW (1.12 / TurtleWoW). Shows a single coloured dot on your screen. Hover it to see which of your characters can craft Arcanite, Mooncloth, and Cured Rugged Hide — and which are still on cooldown.
 
 ---
 
-Transmute: Arcanite. Mooncloth. Cure Rugged Hide. These reset every few days and are easy to forget, especially across alts. MuteClock puts a small dot on your screen that changes colour when something is ready. Hover it for the full breakdown. That's it.
+## Installation
+
+1. Download or clone this repository
+2. Place the `MuteClock` folder into `<WoW folder>\Interface\AddOns\`
+3. The folder **must** be named `MuteClock`
+4. Log in or `/reload`
 
 ---
 
-## Features
+## First-time setup
 
-### The dot
+Open the relevant trade skill window on each character you want to track (Alchemy, Tailoring, Leatherworking). MuteClock reads the cooldown state at that point and remembers it. Do this once per character and they'll always appear in the list.
 
-A small coloured square. Drag it anywhere on screen.
+---
+
+## The dot
+
+The dot sits at the top-centre of your screen by default.
 
 | Colour | Meaning |
 |--------|---------|
-| 🟢 Green | At least one craft is ready |
-| 🟡 Yellow | Something comes off cooldown within 4 hours |
-| 🔴 Red | Everything is on a long cooldown |
-| ⬛ Grey | No data yet. Open a trade skill window |
+| Grey   | No cooldown data recorded yet |
+| Green  | At least one craft is ready |
+| Yellow | Nothing ready, but something expires within 4 hours |
+| Red    | Everything is on a long cooldown |
+
+- **Shift+drag** to reposition
+- **Ctrl+right-click** to open config
+- With **SmartIcon** enabled, the dot swaps to the actual item icon when something is ready
 
 ---
 
-### Tooltip
+## Tooltip
 
-Hover the dot to see every tracked craft and how long until it's ready.
+Hover the dot for the full breakdown. Each character is listed with their craft status.
 
-```
-Craft Cooldowns  2 ready  1 waiting
+- **Ready** — available to craft right now
+- **1d 4h 30m** — time remaining on cooldown
 
-Arathorn
-  Transmute: Arcanite    Ready  (+6h overdue)
-  Mooncloth              14h 22m
+**Show ready time** adds a local clock timestamp alongside the countdown — e.g. `1d 4h  Thu 14:30` — so you can plan without doing the mental arithmetic.
 
-Silvara
-  Transmute: Arcanite    Ready
-```
-
-Can be grouped by character (default) or by craft type.
-
----
-
-### Multi-character tracking
-
-Cooldown data is stored per character in a shared SavedVariables file. Turn on "Track all characters" and every alt shows up in one tooltip without logging in to each one. Data updates whenever you open a trade skill window.
-
----
-
-### SmartIcon
-
-When a craft is ready, the dot can swap to show the actual item icon instead of a coloured square. If multiple are ready, it shows the highest priority one. Current character takes priority over alts.
-
----
-
-### Chat notifications
-
-When a cooldown expires you get a chat message and a sound. Works for all characters in scope, not just whoever you're logged in as.
-
-```
-MuteClock  Your Transmute: Arcanite is ready!
-MuteClock  Silvara's Mooncloth is ready!  (+2h 15m)
-```
-
----
-
-### Minimap button
-
-Optional. Replaces the floating dot with a button on the minimap border. Drag it around the edge to reposition.
-
----
-
-### History tab
-
-The config panel has a History tab with a timestamped log of every craft you've performed, across all characters.
-
----
-
-## Install
-
-1. Drop the `MuteClock` folder into `World of Warcraft/Interface/AddOns/`
-2. The folder should look like this:
-   ```
-   MuteClock/
-   ├── MuteClock.lua
-   ├── MuteClock.xml
-   └── MuteClock.toc
-   ```
-3. Log in. MuteClock prints `MuteClock loaded.` in chat to confirm.
-
----
-
-## Usage
-
-**First time:** open any trade skill window that has a tracked craft. MuteClock reads the cooldown from the game and starts tracking.
-
-**Open config:** Ctrl + left-click the dot, or `/muteclock config`
-
-**Move the dot:** left-click and drag. Position saves on release.
-
----
-
-## Config
-
-<details>
-<summary><strong>TRACKING</strong></summary>
-<br />
-
-**Track all characters**
-Show cooldowns from every character that has opened a tracked trade skill, not just the current one.
-
-**Chat alert on expiry**
-Posts to your default chat frame and plays a sound when a cooldown expires.
-
-</details>
-
-<details>
-<summary><strong>DISPLAY</strong></summary>
-<br />
-
-**Group tooltip by craft type**
-Groups rows by craft name instead of by character.
-
-**Show ready time**
-Shows the real clock time when a cooldown will expire. Only shown for cooldowns over 1 hour.
-
-**Show overdue time**
-When a craft has been sitting ready, shows by how much. e.g. `Ready  +6h 12m`
-
-**Show last crafted time**
-Appends the timestamp of the last craft to each tooltip row.
-
-</details>
-
-<details>
-<summary><strong>INDICATOR</strong></summary>
-<br />
-
-**Dot size**
-4px to 32px. Default 16px.
-
-**SmartIcon**
-Replaces the dot with the craft icon when something is ready.
-
-**Ready count badge**
-Shows a number on the indicator for how many crafts are ready.
-
-**Use minimap button**
-Switches to a minimap border button instead of a floating dot.
-
-**Hide indicator**
-Hides the dot. Use `/muteclock show` to bring it back.
-
-</details>
-
----
-
-## Commands
-
-| Command | Action |
-|---------|--------|
-| `/muteclock` | List commands |
-| `/muteclock config` | Open settings |
-| `/muteclock reset` | Reset to defaults |
-| `/muteclock show` | Unhide the dot |
+**Group by craft type** reorganises the tooltip to list all characters under each craft heading instead of all crafts under each character.
 
 ---
 
@@ -188,18 +53,42 @@ Hides the dot. Use `/muteclock show` to bring it back.
 
 | Craft | Profession | Cooldown |
 |-------|-----------|----------|
-| Transmute: Arcanite | Alchemy | 48h |
+| Transmute: Arcanite | Alchemy | 48 hours |
 | Mooncloth | Tailoring | 4 days |
 | Cure Rugged Hide | Leatherworking | 3.5 days |
 
-To add more, edit the `TRACKED_CRAFTS` table at the top of `MuteClock.lua`. The `key` must exactly match what `GetTradeSkillInfo()` returns for that recipe.
+---
 
-```lua
-{ key = "Recipe Name", label = "Display Label", icon = "Interface\\Icons\\IconName" },
-```
+## Config
+
+Open with **Ctrl+right-click** on the dot, or `/muteclock config`.
+
+| Option | Description |
+|--------|-------------|
+| Track all characters | Show cooldowns from all your alts, not just the current character |
+| Chat alert on expiry | Sends a chat message and plays a sound when a cooldown expires |
+| Group tooltip by craft | See all Mooncloth entries together, etc. |
+| Show ready time | Adds a local clock timestamp to each cooldown line |
+| Dot size | Resize the dot (4–32px) |
+| SmartIcon | When something is ready, replace the dot with that craft's item icon. Prefers the current character's available crafts. Priority: Arcanite > Mooncloth > Cured Rugged Hide |
+| Hide dot | Hides the dot entirely — use `/muteclock show` to get it back |
+| Tooltip X / Y | Nudge the tooltip position relative to the dot |
 
 ---
 
-<div align="center">
-For the player with four alts and a spreadsheet.
-</div>
+## Slash commands
+
+| Command | Description |
+|---------|-------------|
+| `/muteclock` | Show command list |
+| `/muteclock config` | Open config window |
+| `/muteclock reset` | Restore all settings to defaults (cooldown data kept) |
+| `/muteclock show` | Unhide the dot |
+
+---
+
+## Notes
+
+- Cooldown data is stored per character in `SavedVariables`. It persists across sessions and is shared between the same account's characters on the same realm.
+- Characters you have never logged in and opened a trade skill window on will not appear in the list — there is no way to know their profession state without doing so at least once.
+- Compatible with WoW 1.12 (Vanilla / TurtleWoW).

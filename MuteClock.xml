@@ -181,9 +181,9 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 		</Layers>
 		<Frames>
 
-			<!-- Tab: Settings  y=-32 (4px below bar) -->
+			<!-- Tab: Settings -->
 			<Button name="$parentBtnTabSettings" inherits="OptionsButtonTemplate" text="Settings">
-				<Size><AbsDimension x="80" y="22"/></Size>
+				<Size><AbsDimension x="56" y="22"/></Size>
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parent">
 						<Offset><AbsDimension x="10" y="-32"/></Offset>
@@ -194,9 +194,9 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 				</Scripts>
 			</Button>
 
-			<!-- Tab: History  4px right of Settings -->
+			<!-- Tab: History -->
 			<Button name="$parentBtnTabHistory" inherits="OptionsButtonTemplate" text="History">
-				<Size><AbsDimension x="80" y="22"/></Size>
+				<Size><AbsDimension x="56" y="22"/></Size>
 				<Anchors>
 					<Anchor point="LEFT" relativeTo="$parentBtnTabSettings" relativePoint="RIGHT">
 						<Offset><AbsDimension x="4" y="0"/></Offset>
@@ -204,6 +204,32 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 				</Anchors>
 				<Scripts>
 					<OnClick>doShowConfigTab("History");</OnClick>
+				</Scripts>
+			</Button>
+
+			<!-- Tab: Crafters -->
+			<Button name="$parentBtnTabCrafters" inherits="OptionsButtonTemplate" text="Crafters">
+				<Size><AbsDimension x="56" y="22"/></Size>
+				<Anchors>
+					<Anchor point="LEFT" relativeTo="$parentBtnTabHistory" relativePoint="RIGHT">
+						<Offset><AbsDimension x="4" y="0"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>doShowConfigTab("Crafters");</OnClick>
+				</Scripts>
+			</Button>
+
+			<!-- Tab: Nearby -->
+			<Button name="$parentBtnTabNearby" inherits="OptionsButtonTemplate" text="Nearby">
+				<Size><AbsDimension x="56" y="22"/></Size>
+				<Anchors>
+					<Anchor point="LEFT" relativeTo="$parentBtnTabCrafters" relativePoint="RIGHT">
+						<Offset><AbsDimension x="4" y="0"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Scripts>
+					<OnClick>doShowConfigTab("Nearby");</OnClick>
 				</Scripts>
 			</Button>
 
@@ -483,8 +509,9 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 			</Frame>
 
 			<!-- ============================================================
-			     HISTORY PANEL   x=8  y=-56   244 x 428
-			     ScrollFrame 8px shorter for bottom padding.
+			     HISTORY PANEL
+			     ScrollFrame with FauxScrollFrame scrollbar.
+			     Content frame height is set dynamically from Lua.
 			     ============================================================ -->
 			<Frame name="$parentPanelHistory" hidden="true">
 				<Size><AbsDimension x="244" y="428"/></Size>
@@ -494,21 +521,118 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 					</Anchor>
 				</Anchors>
 				<Frames>
-					<ScrollingMessageFrame name="$parentMsgFrame" maxLines="60">
-						<Size><AbsDimension x="244" y="420"/></Size>
+					<ScrollFrame name="$parentScrollFrame">
+						<Size><AbsDimension x="224" y="420"/></Size>
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parent">
 								<Offset><AbsDimension x="0" y="0"/></Offset>
 							</Anchor>
 						</Anchors>
+						<ScrollChild>
+							<Frame name="$parentContent">
+								<Size><AbsDimension x="224" y="1"/></Size>
+							</Frame>
+						</ScrollChild>
+					</ScrollFrame>
+					<Slider name="$parentScrollBar" inherits="UIPanelScrollBarTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentScrollFrame" relativePoint="TOPRIGHT">
+								<Offset><AbsDimension x="2" y="-16"/></Offset>
+							</Anchor>
+							<Anchor point="BOTTOMLEFT" relativeTo="$parentScrollFrame" relativePoint="BOTTOMRIGHT">
+								<Offset><AbsDimension x="2" y="16"/></Offset>
+							</Anchor>
+						</Anchors>
 						<Scripts>
-							<OnLoad>
-								this:SetFont("Fonts\\FRIZQT__.TTF", 11, "");
-								this:SetFading(false);
-								this:SetJustifyH("LEFT");
-							</OnLoad>
+							<OnValueChanged>
+								MuteClockConfigFramePanelHistoryScrollFrame:SetVerticalScroll(this:GetValue());
+							</OnValueChanged>
 						</Scripts>
-					</ScrollingMessageFrame>
+					</Slider>
+				</Frames>
+			</Frame>
+
+			<!-- ============================================================
+			     CRAFTERS PANEL — persistent friends list
+			     ============================================================ -->
+			<Frame name="$parentPanelCrafters" hidden="true">
+				<Size><AbsDimension x="244" y="428"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent">
+						<Offset><AbsDimension x="8" y="-56"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Frames>
+					<ScrollFrame name="$parentScrollFrame">
+						<Size><AbsDimension x="224" y="420"/></Size>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parent">
+								<Offset><AbsDimension x="0" y="0"/></Offset>
+							</Anchor>
+						</Anchors>
+						<ScrollChild>
+							<Frame name="$parentContent">
+								<Size><AbsDimension x="224" y="1"/></Size>
+							</Frame>
+						</ScrollChild>
+					</ScrollFrame>
+					<Slider name="$parentScrollBar" inherits="UIPanelScrollBarTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentScrollFrame" relativePoint="TOPRIGHT">
+								<Offset><AbsDimension x="2" y="-16"/></Offset>
+							</Anchor>
+							<Anchor point="BOTTOMLEFT" relativeTo="$parentScrollFrame" relativePoint="BOTTOMRIGHT">
+								<Offset><AbsDimension x="2" y="16"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnValueChanged>
+								MuteClockConfigFramePanelCraftersScrollFrame:SetVerticalScroll(this:GetValue());
+							</OnValueChanged>
+						</Scripts>
+					</Slider>
+				</Frames>
+			</Frame>
+
+			<!-- ============================================================
+			     NEARBY PANEL — group addon users not yet friended
+			     ============================================================ -->
+			<Frame name="$parentPanelNearby" hidden="true">
+				<Size><AbsDimension x="244" y="428"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent">
+						<Offset><AbsDimension x="8" y="-56"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Frames>
+					<ScrollFrame name="$parentScrollFrame">
+						<Size><AbsDimension x="224" y="420"/></Size>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parent">
+								<Offset><AbsDimension x="0" y="0"/></Offset>
+							</Anchor>
+						</Anchors>
+						<ScrollChild>
+							<Frame name="$parentContent">
+								<Size><AbsDimension x="224" y="1"/></Size>
+							</Frame>
+						</ScrollChild>
+					</ScrollFrame>
+					<Slider name="$parentScrollBar" inherits="UIPanelScrollBarTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentScrollFrame" relativePoint="TOPRIGHT">
+								<Offset><AbsDimension x="2" y="-16"/></Offset>
+							</Anchor>
+							<Anchor point="BOTTOMLEFT" relativeTo="$parentScrollFrame" relativePoint="BOTTOMRIGHT">
+								<Offset><AbsDimension x="2" y="16"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnValueChanged>
+								MuteClockConfigFramePanelNearbyScrollFrame:SetVerticalScroll(this:GetValue());
+							</OnValueChanged>
+						</Scripts>
+					</Slider>
 				</Frames>
 			</Frame>
 
