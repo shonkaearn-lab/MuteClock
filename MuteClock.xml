@@ -23,9 +23,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 			</Layer>
 		</Layers>
 		<Scripts>
-			<OnLoad>
-				Clock_OnLoad();
-			</OnLoad>
+			<OnLoad>Clock_OnLoad();</OnLoad>
 			<OnUpdate>Clock_OnUpdate(arg1);</OnUpdate>
 			<OnEvent>Clock_OnEvent();</OnEvent>
 			<OnEnter>doShowTooltip();</OnEnter>
@@ -37,126 +35,32 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 	</Frame>
 
 	<!-- ============================================================
-	     MinimapButton
-	     ============================================================ -->
-	<Button name="MuteClockMinimapButton" parent="Minimap" frameStrata="HIGH" hidden="true" enableMouse="true" movable="true">
-		<Size><AbsDimension x="20" y="20"/></Size>
-		<Layers>
-			<Layer level="BACKGROUND">
-				<Texture name="MuteClockMinimapButtonBg" file="Interface\Minimap\MiniMap-TrackingBorder">
-					<Size><AbsDimension x="56" y="56"/></Size>
-					<Anchors><Anchor point="CENTER"/></Anchors>
-				</Texture>
-			</Layer>
-			<Layer level="ARTWORK">
-				<Texture name="MuteClockMinimapButtonIcon" file="Interface\Buttons\WHITE8X8">
-					<Size><AbsDimension x="16" y="16"/></Size>
-					<Anchors><Anchor point="CENTER"/></Anchors>
-				</Texture>
-			</Layer>
-			<Layer level="OVERLAY">
-				<FontString name="MuteClockMinimapBadge" inherits="GameFontNormalSmall" hidden="true">
-					<Anchors>
-						<Anchor point="TOPRIGHT" relativeTo="$parent">
-							<Offset><AbsDimension x="4" y="4"/></Offset>
-						</Anchor>
-					</Anchors>
-					<Shadow><Offset><AbsDimension x="1" y="-1"/></Offset><Color r="0" g="0" b="0" a="1"/></Shadow>
-				</FontString>
-			</Layer>
-		</Layers>
-		<Scripts>
-			<OnLoad>this:RegisterForDrag("LeftButton");</OnLoad>
-			<OnEnter>doShowMinimapTooltip();</OnEnter>
-			<OnLeave>GameTooltip:Hide();</OnLeave>
-			<OnMouseUp>MinimapButton_OnClick(arg1, "UP");</OnMouseUp>
-			<OnDragStart>MinimapButton_OnDragStart();</OnDragStart>
-			<OnDragStop>MinimapButton_OnDragStop();</OnDragStop>
-			<OnUpdate>MinimapButton_OnUpdate();</OnUpdate>
-		</Scripts>
-	</Button>
+	     Config frame   280 x 480
 
-	<!-- ============================================================
-	     Config frame   260 x 420
+	     Zones:
+	       y=   0 .. -28   Title bar
+	       y= -28 .. -56   Tab row  (tabs at y=-32, h=22)
+	       y= -56 .. -480  Panels   (h=424 each, y=-56)
 
-	     OptionsCheckButtonTemplate = 26px tall widget.
-	     We step 32px between checkboxes so there is always ~6px
-	     of genuine air between each row's visual bottom and the next.
-
-	     Vertical budget:
-	       0  .. 28    dark title bar
-	       28 .. 56    tab row: y=-32, h=22, bottom at 54 (2px spare)
-	       56 .. 404   panel (y=-56, h=348)
-	       404.. 420   bottom bar (Reset Defaults at BOTTOMLEFT+10)
-
-	     PanelSettings cumulative Y (from panel TOPLEFT = 0):
-
-	       Divider h=14 (slightly taller frame gives text more room).
-	       Gap: divider → first CB  = 20px
-	       Gap: CB      → CB        = 32px  (26px widget + 6px air)
-	       Gap: last CB → divider   = 28px  (same air, divider on next line)
-	       Gap: divider → slider    = 22px
-	       Slider h=16 visible; step to next CB = 42px
-
+	     PanelSettings internal layout (y from panel top = 0):
 	         0    DivTracking  (h=14)
 	        -20   CBAllChars
 	        -52   CBNotify
-	        -80   DivDisplay          ← 28 after CBNotify
-	       -100   CBGroupByCraft      ← 20 after div
-	       -132   CBReadyTime
-	       -164   CBOverdue
-	       -196   CBLastCrafted
-	       -224   DivDot              ← 28 after CBLastCrafted
-	       -246   SliderSize h=16     ← 22 after div
-	       -288   CBSmartIcon         ← 42 after slider top
-	       -320   CBBadge
-	       -352   CBMinimap           ← would be 320+32=352... but panel h=348
-	
-	     Panel needs to be 380px to safely clear CBMinimap and CBHide.
-	     Frame height = 56 + 380 + 16 = 452.  Round to 460.
-
-	     Revised totals:
-	       Frame:  260 x 460
-	       Panel:  y=-56, h=388
-	         0    DivTracking
-	        -20   CBAllChars
-	        -52   CBNotify
-	        -80   DivDisplay
-	       -100   CBGroupByCraft
-	       -132   CBReadyTime
-	       -164   CBOverdue
-	       -196   CBLastCrafted
-	       -224   DivDot
-	       -246   SliderSize
-	       -288   CBSmartIcon
-	       -320   CBBadge
-	       -352   CBMinimap
-	       -384   CBHide              ← bottom vis ~-410; panel h=388 tight.
-
-	     Give CBHide 26px visible, so bottom = -384-26 = -410. Panel h must
-	     be at least 410+10 = 420.  Set panel h=420, frame = 56+420+16 = 492.
-	     Round frame to 500 for a clean number.  Panel h=428.
-
-	     Final:
-	       Frame  260 x 500
-	       Panel  y=-56  h=428
-	         0    DivTracking
-	        -20   CBAllChars
-	        -52   CBNotify
-	        -84   DivDisplay   (32 after CBNotify, matching CB rhythm)
+	        -84   DivDisplay
 	       -104   CBGroupByCraft
 	       -136   CBReadyTime
 	       -168   CBOverdue
 	       -200   CBLastCrafted
-	       -232   DivDot       (32 after CBLastCrafted)
-	       -254   SliderSize   (22 after div)
-	       -298   CBSmartIcon  (44 after slider top — label text above + thumb)
+	       -232   DivDot
+	       -254   SliderSize   (h=16, visual ~36px including label)
+	       -298   CBSmartIcon
 	       -330   CBBadge
-	       -362   CBMinimap
-	       -394   CBHide       ← bottom vis ~-420; panel h=428 → 8px clear ✓
+	       -362   CBHide
+	       -404   BtnDefaults  (32px gap, button h=22, bottom=-426)
+	     Panel h=424 fits with ~2px to spare. ✓
 	     ============================================================ -->
 	<Frame name="MuteClockConfigFrame" toplevel="true" parent="UIParent" frameStrata="DIALOG" hidden="true" enableMouse="true" movable="true">
-		<Size><AbsDimension x="260" y="500"/></Size>
+		<Size><AbsDimension x="280" y="480"/></Size>
 		<Anchors><Anchor point="CENTER"/></Anchors>
 		<Backdrop bgFile="Interface\ChatFrame\ChatFrameBackground" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
 			<BackgroundInsets><AbsInset left="3" right="3" top="3" bottom="3"/></BackgroundInsets>
@@ -166,7 +70,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 		<Layers>
 			<Layer level="OVERLAY">
 				<Texture name="MuteClockConfigFrameTopBar" file="Interface\Buttons\WHITE8X8">
-					<Size><AbsDimension x="260" y="28"/></Size>
+					<Size><AbsDimension x="280" y="28"/></Size>
 					<Anchors><Anchor point="TOP"/></Anchors>
 					<TexCoords left="0" right="1" top="0" bottom="1"/>
 				</Texture>
@@ -181,75 +85,66 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 		</Layers>
 		<Frames>
 
-			<!-- Tab: Settings -->
+			<!-- Tabs — evenly spaced across the width.
+			     Frame inner = 280 - 2*8 margin = 264.
+			     4 tabs * 60 + 3 gaps * 4 = 252px.  Left margin = (264-252)/2 = 6. -->
 			<Button name="$parentBtnTabSettings" inherits="OptionsButtonTemplate" text="Settings">
-				<Size><AbsDimension x="56" y="22"/></Size>
+				<Size><AbsDimension x="60" y="22"/></Size>
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parent">
-						<Offset><AbsDimension x="10" y="-32"/></Offset>
+						<Offset><AbsDimension x="6" y="-32"/></Offset>
 					</Anchor>
 				</Anchors>
-				<Scripts>
-					<OnClick>doShowConfigTab("Settings");</OnClick>
-				</Scripts>
+				<Scripts><OnClick>doShowConfigTab("Settings");</OnClick></Scripts>
 			</Button>
 
-			<!-- Tab: History -->
 			<Button name="$parentBtnTabHistory" inherits="OptionsButtonTemplate" text="History">
-				<Size><AbsDimension x="56" y="22"/></Size>
+				<Size><AbsDimension x="60" y="22"/></Size>
 				<Anchors>
 					<Anchor point="LEFT" relativeTo="$parentBtnTabSettings" relativePoint="RIGHT">
 						<Offset><AbsDimension x="4" y="0"/></Offset>
 					</Anchor>
 				</Anchors>
-				<Scripts>
-					<OnClick>doShowConfigTab("History");</OnClick>
-				</Scripts>
+				<Scripts><OnClick>doShowConfigTab("History");</OnClick></Scripts>
 			</Button>
 
-			<!-- Tab: Crafters -->
 			<Button name="$parentBtnTabCrafters" inherits="OptionsButtonTemplate" text="Crafters">
-				<Size><AbsDimension x="56" y="22"/></Size>
+				<Size><AbsDimension x="60" y="22"/></Size>
 				<Anchors>
 					<Anchor point="LEFT" relativeTo="$parentBtnTabHistory" relativePoint="RIGHT">
 						<Offset><AbsDimension x="4" y="0"/></Offset>
 					</Anchor>
 				</Anchors>
-				<Scripts>
-					<OnClick>doShowConfigTab("Crafters");</OnClick>
-				</Scripts>
+				<Scripts><OnClick>doShowConfigTab("Crafters");</OnClick></Scripts>
 			</Button>
 
-			<!-- Tab: Nearby -->
 			<Button name="$parentBtnTabNearby" inherits="OptionsButtonTemplate" text="Nearby">
-				<Size><AbsDimension x="56" y="22"/></Size>
+				<Size><AbsDimension x="60" y="22"/></Size>
 				<Anchors>
 					<Anchor point="LEFT" relativeTo="$parentBtnTabCrafters" relativePoint="RIGHT">
 						<Offset><AbsDimension x="4" y="0"/></Offset>
 					</Anchor>
 				</Anchors>
-				<Scripts>
-					<OnClick>doShowConfigTab("Nearby");</OnClick>
-				</Scripts>
+				<Scripts><OnClick>doShowConfigTab("Nearby");</OnClick></Scripts>
 			</Button>
 
-			<!-- Close button: 32x32 flush top-right -->
+			<!-- Close button -->
 			<Button name="$parentBtnClose" inherits="UIPanelCloseButton">
 				<Anchors>
 					<Anchor point="TOPRIGHT" relativeTo="$parent">
 						<Offset><AbsDimension x="0" y="0"/></Offset>
 					</Anchor>
 				</Anchors>
-				<Scripts>
-					<OnClick>MuteClockConfigFrame:Hide();</OnClick>
-				</Scripts>
+				<Scripts><OnClick>MuteClockConfigFrame:Hide();</OnClick></Scripts>
 			</Button>
 
 			<!-- ============================================================
-			     SETTINGS PANEL   x=8  y=-56   244 x 428
+			     SETTINGS PANEL
+			     x=8  y=-56   264 x 424
+			     Reset Defaults lives here so it vanishes on other tabs.
 			     ============================================================ -->
 			<Frame name="$parentPanelSettings">
-				<Size><AbsDimension x="244" y="428"/></Size>
+				<Size><AbsDimension x="264" y="424"/></Size>
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parent">
 						<Offset><AbsDimension x="8" y="-56"/></Offset>
@@ -257,9 +152,9 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 				</Anchors>
 				<Frames>
 
-					<!-- ─── TRACKING ──────────────── y=0 h=14 ─── -->
+					<!-- ─── TRACKING ───────────────── y=0 ─── -->
 					<Frame name="$parentDivTracking">
-						<Size><AbsDimension x="244" y="14"/></Size>
+						<Size><AbsDimension x="264" y="14"/></Size>
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parent">
 								<Offset><AbsDimension x="0" y="0"/></Offset>
@@ -268,12 +163,11 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						<Layers>
 							<Layer level="OVERLAY">
 								<FontString inherits="GameFontNormalSmall" text="TRACKING" justifyH="LEFT">
-									<Color r="0.4" g="0.8" b="1"/>
+									<Color r="0.35" g="0.75" b="1"/>
 									<Anchors><Anchor point="LEFT"/></Anchors>
 								</FontString>
-								<!-- "TRACKING" ≈58px; rule = 244-58-8 = 178 -->
 								<Texture name="MuteClockDivTracking" file="Interface\Buttons\WHITE8X8">
-									<Size><AbsDimension x="178" y="1"/></Size>
+									<Size><AbsDimension x="196" y="1"/></Size>
 									<Anchors><Anchor point="RIGHT"/></Anchors>
 									<TexCoords left="0" right="1" top="0" bottom="1"/>
 								</Texture>
@@ -281,7 +175,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Layers>
 					</Frame>
 
-					<!-- CBAllChars  y=-20  (div h=14 + 6px gap) -->
+					<!-- CBAllChars  y=-20 -->
 					<CheckButton name="$parentCBAllChars" inherits="OptionsCheckButtonTemplate">
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parentDivTracking">
@@ -296,7 +190,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Scripts>
 					</CheckButton>
 
-					<!-- CBNotify  y=-52  (32px step) -->
+					<!-- CBNotify  y=-52 -->
 					<CheckButton name="$parentCBNotify" inherits="OptionsCheckButtonTemplate">
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parentCBAllChars">
@@ -311,9 +205,9 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Scripts>
 					</CheckButton>
 
-					<!-- ─── DISPLAY ───────────────── y=-84  (32px step matches CB rhythm) ─── -->
+					<!-- ─── DISPLAY ────────────────── y=-84 ─── -->
 					<Frame name="$parentDivDisplay">
-						<Size><AbsDimension x="244" y="14"/></Size>
+						<Size><AbsDimension x="264" y="14"/></Size>
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parentCBNotify">
 								<Offset><AbsDimension x="0" y="-32"/></Offset>
@@ -322,12 +216,11 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						<Layers>
 							<Layer level="OVERLAY">
 								<FontString inherits="GameFontNormalSmall" text="DISPLAY" justifyH="LEFT">
-									<Color r="0.4" g="0.8" b="1"/>
+									<Color r="0.35" g="0.75" b="1"/>
 									<Anchors><Anchor point="LEFT"/></Anchors>
 								</FontString>
-								<!-- "DISPLAY" ≈50px; rule = 244-50-8 = 186 -->
 								<Texture name="MuteClockDivDisplay" file="Interface\Buttons\WHITE8X8">
-									<Size><AbsDimension x="186" y="1"/></Size>
+									<Size><AbsDimension x="204" y="1"/></Size>
 									<Anchors><Anchor point="RIGHT"/></Anchors>
 									<TexCoords left="0" right="1" top="0" bottom="1"/>
 								</Texture>
@@ -335,7 +228,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Layers>
 					</Frame>
 
-					<!-- CBGroupByCraft  y=-104  (div h=14 + 6px gap) -->
+					<!-- CBGroupByCraft  y=-104 -->
 					<CheckButton name="$parentCBGroupByCraft" inherits="OptionsCheckButtonTemplate">
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parentDivDisplay">
@@ -343,9 +236,9 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 							</Anchor>
 						</Anchors>
 						<Scripts>
-							<OnLoad>getglobal(this:GetName().."Text"):SetText("Group tooltip by craft type");</OnLoad>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Group by craft type");</OnLoad>
 							<OnClick>doConfigSave();</OnClick>
-							<OnEnter>ConfigTooltip_Show("Groups tooltip by craft type", "instead of by character.");</OnEnter>
+							<OnEnter>ConfigTooltip_Show("Groups the tooltip and Crafters panel", "by craft type instead of by character.");</OnEnter>
 							<OnLeave>ConfigTooltip_Hide();</OnLeave>
 						</Scripts>
 					</CheckButton>
@@ -395,9 +288,9 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Scripts>
 					</CheckButton>
 
-					<!-- ─── INDICATOR ─────────────── y=-232  (32px step) ─── -->
+					<!-- ─── INDICATOR ──────────────── y=-232 ─── -->
 					<Frame name="$parentDivDot">
-						<Size><AbsDimension x="244" y="14"/></Size>
+						<Size><AbsDimension x="264" y="14"/></Size>
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parentCBLastCrafted">
 								<Offset><AbsDimension x="0" y="-32"/></Offset>
@@ -406,12 +299,11 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						<Layers>
 							<Layer level="OVERLAY">
 								<FontString inherits="GameFontNormalSmall" text="INDICATOR" justifyH="LEFT">
-									<Color r="0.4" g="0.8" b="1"/>
+									<Color r="0.35" g="0.75" b="1"/>
 									<Anchors><Anchor point="LEFT"/></Anchors>
 								</FontString>
-								<!-- "INDICATOR" ≈64px; rule = 244-64-8 = 172 -->
 								<Texture name="MuteClockDivDot" file="Interface\Buttons\WHITE8X8">
-									<Size><AbsDimension x="172" y="1"/></Size>
+									<Size><AbsDimension x="190" y="1"/></Size>
 									<Anchors><Anchor point="RIGHT"/></Anchors>
 									<TexCoords left="0" right="1" top="0" bottom="1"/>
 								</Texture>
@@ -419,12 +311,9 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Layers>
 					</Frame>
 
-					<!-- SliderSize  y=-254  (div h=14 + 8px gap)
-					     OptionsSliderTemplate: label text floats 10px above thumb centre.
-					     Thumb is 16px tall.  Total visual height ~36px.
-					     Step to next control: 44px (gives ~8px air below thumb). -->
+					<!-- SliderSize  y=-254 -->
 					<Slider name="$parentSliderSize" inherits="OptionsSliderTemplate">
-						<Size><AbsDimension x="214" y="16"/></Size>
+						<Size><AbsDimension x="234" y="16"/></Size>
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parentDivDot">
 								<Offset><AbsDimension x="8" y="-22"/></Offset>
@@ -444,7 +333,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Scripts>
 					</Slider>
 
-					<!-- CBSmartIcon  y=-298  (slider top -254, step 44) -->
+					<!-- CBSmartIcon  y=-298 -->
 					<CheckButton name="$parentCBSmartIcon" inherits="OptionsCheckButtonTemplate">
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parentSliderSize">
@@ -474,26 +363,10 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Scripts>
 					</CheckButton>
 
-					<!-- CBMinimap  y=-362 -->
-					<CheckButton name="$parentCBMinimap" inherits="OptionsCheckButtonTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentCBBadge">
-								<Offset><AbsDimension x="0" y="-32"/></Offset>
-							</Anchor>
-						</Anchors>
-						<Scripts>
-							<OnLoad>getglobal(this:GetName().."Text"):SetText("Use minimap button");</OnLoad>
-							<OnClick>doConfigSave();</OnClick>
-							<OnEnter>ConfigTooltip_Show("Attaches the indicator to the minimap.", "Drag it around the edge to reposition.");</OnEnter>
-							<OnLeave>ConfigTooltip_Hide();</OnLeave>
-						</Scripts>
-					</CheckButton>
-
-					<!-- CBHide  y=-394
-					     Widget bottom ~-420.  Panel h=428.  8px clear. ✓ -->
+					<!-- CBHide  y=-362 -->
 					<CheckButton name="$parentCBHide" inherits="OptionsCheckButtonTemplate">
 						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentCBMinimap">
+							<Anchor point="TOPLEFT" relativeTo="$parentCBBadge">
 								<Offset><AbsDimension x="0" y="-32"/></Offset>
 							</Anchor>
 						</Anchors>
@@ -505,16 +378,29 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Scripts>
 					</CheckButton>
 
+					<!-- Reset Defaults  y=-404
+					     Placed inside PanelSettings so it only shows on the Settings tab. -->
+					<Button name="$parentBtnDefaults" inherits="OptionsButtonTemplate" text="Reset Defaults">
+						<Size><AbsDimension x="110" y="22"/></Size>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentCBHide">
+								<Offset><AbsDimension x="0" y="-42"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnClick>doSetDefaultSettings();</OnClick>
+						</Scripts>
+					</Button>
+
 				</Frames>
 			</Frame>
 
 			<!-- ============================================================
 			     HISTORY PANEL
-			     ScrollFrame with FauxScrollFrame scrollbar.
-			     Content frame height is set dynamically from Lua.
+			     Full-height scroll area: 264 x 424
 			     ============================================================ -->
 			<Frame name="$parentPanelHistory" hidden="true">
-				<Size><AbsDimension x="244" y="428"/></Size>
+				<Size><AbsDimension x="264" y="424"/></Size>
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parent">
 						<Offset><AbsDimension x="8" y="-56"/></Offset>
@@ -522,7 +408,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 				</Anchors>
 				<Frames>
 					<ScrollFrame name="$parentScrollFrame">
-						<Size><AbsDimension x="224" y="420"/></Size>
+						<Size><AbsDimension x="242" y="416"/></Size>
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parent">
 								<Offset><AbsDimension x="0" y="0"/></Offset>
@@ -530,7 +416,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Anchors>
 						<ScrollChild>
 							<Frame name="$parentContent">
-								<Size><AbsDimension x="224" y="1"/></Size>
+								<Size><AbsDimension x="242" y="1"/></Size>
 							</Frame>
 						</ScrollChild>
 					</ScrollFrame>
@@ -553,10 +439,10 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 			</Frame>
 
 			<!-- ============================================================
-			     CRAFTERS PANEL — persistent friends list
+			     CRAFTERS PANEL
 			     ============================================================ -->
 			<Frame name="$parentPanelCrafters" hidden="true">
-				<Size><AbsDimension x="244" y="428"/></Size>
+				<Size><AbsDimension x="264" y="424"/></Size>
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parent">
 						<Offset><AbsDimension x="8" y="-56"/></Offset>
@@ -564,7 +450,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 				</Anchors>
 				<Frames>
 					<ScrollFrame name="$parentScrollFrame">
-						<Size><AbsDimension x="224" y="420"/></Size>
+						<Size><AbsDimension x="242" y="416"/></Size>
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parent">
 								<Offset><AbsDimension x="0" y="0"/></Offset>
@@ -572,7 +458,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Anchors>
 						<ScrollChild>
 							<Frame name="$parentContent">
-								<Size><AbsDimension x="224" y="1"/></Size>
+								<Size><AbsDimension x="242" y="1"/></Size>
 							</Frame>
 						</ScrollChild>
 					</ScrollFrame>
@@ -595,10 +481,10 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 			</Frame>
 
 			<!-- ============================================================
-			     NEARBY PANEL — group addon users not yet friended
+			     NEARBY PANEL
 			     ============================================================ -->
 			<Frame name="$parentPanelNearby" hidden="true">
-				<Size><AbsDimension x="244" y="428"/></Size>
+				<Size><AbsDimension x="264" y="424"/></Size>
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parent">
 						<Offset><AbsDimension x="8" y="-56"/></Offset>
@@ -606,7 +492,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 				</Anchors>
 				<Frames>
 					<ScrollFrame name="$parentScrollFrame">
-						<Size><AbsDimension x="224" y="420"/></Size>
+						<Size><AbsDimension x="242" y="416"/></Size>
 						<Anchors>
 							<Anchor point="TOPLEFT" relativeTo="$parent">
 								<Offset><AbsDimension x="0" y="0"/></Offset>
@@ -614,7 +500,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Anchors>
 						<ScrollChild>
 							<Frame name="$parentContent">
-								<Size><AbsDimension x="224" y="1"/></Size>
+								<Size><AbsDimension x="242" y="1"/></Size>
 							</Frame>
 						</ScrollChild>
 					</ScrollFrame>
@@ -635,19 +521,6 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 					</Slider>
 				</Frames>
 			</Frame>
-
-			<!-- Reset Defaults  BOTTOMLEFT + 10px margin -->
-			<Button name="$parentBtnDefaults" inherits="OptionsButtonTemplate" text="Reset Defaults">
-				<Size><AbsDimension x="100" y="22"/></Size>
-				<Anchors>
-					<Anchor point="BOTTOMLEFT" relativeTo="$parent">
-						<Offset><AbsDimension x="10" y="10"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Scripts>
-					<OnClick>doSetDefaultSettings();</OnClick>
-				</Scripts>
-			</Button>
 
 		</Frames>
 		<Scripts>

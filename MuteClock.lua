@@ -9,14 +9,12 @@ DEF_POSITION_X        = nil;
 DEF_POSITION_Y        = nil;
 DEF_DOT_SIZE          = 16;
 DEF_DOT_HIDDEN        = 0;
-DEF_SMART_ICON        = 0;
+DEF_SMART_ICON        = 1;
 DEF_GROUP_BY_CRAFT    = 0;
 DEF_SHOW_READY_TIME   = 0;
 DEF_SHOW_OVERDUE      = 1;
 DEF_SHOW_LAST_CRAFTED = 0;
 DEF_SHOW_BADGE        = 0;
-DEF_USE_MINIMAP       = 0;
-DEF_MINIMAP_ANGLE     = 210;
 
 -- -------------------------------------------------------
 -- Runtime globals
@@ -34,36 +32,29 @@ SHOW_READY_TIME      = DEF_SHOW_READY_TIME;
 SHOW_OVERDUE         = DEF_SHOW_OVERDUE;
 SHOW_LAST_CRAFTED    = DEF_SHOW_LAST_CRAFTED;
 SHOW_BADGE           = DEF_SHOW_BADGE;
-USE_MINIMAP          = DEF_USE_MINIMAP;
-MINIMAP_ANGLE        = DEF_MINIMAP_ANGLE;
 
 IS_VARIABLES_LOADED  = 0;
-MINIMAP_DRAGGING     = false;
 CraftingItemName     = nil;
 isCraftSuccess       = 0;
 
 HISTORY_MAX  = 20;
-MC_PEERS     = {};    -- MC_PEERS[playerName] = { craftKey = timestamp, ... } — persisted
-MC_FRIENDS   = {};    -- MC_FRIENDS[playerName] = true — persisted friend list
-MC_NEARBY    = {};    -- MC_NEARBY[playerName] = true — runtime, current group addon users not yet friended
+MC_PEERS     = {};
+MC_FRIENDS   = {};
+MC_NEARBY    = {};
 
 -- -------------------------------------------------------
 -- Tracked crafts
--- 'key' must exactly match the string returned by
--- GetTradeSkillInfo() for that recipe in enUS client.
 -- -------------------------------------------------------
 TRACKED_CRAFTS = {
-	{ key = "Transmute: Arcanite", label = "Transmute: Arcanite", icon = "Interface\\Icons\\INV_Ingot_07"              },
+	{ key = "Transmute: Arcanite", label = "Transmute: Arcanite", icon = "Interface\\Icons\\INV_Misc_Stonetablet_05"   },
 	{ key = "Mooncloth",           label = "Mooncloth",            icon = "Interface\\Icons\\INV_Fabric_Moonrag_01"    },
 	{ key = "Cure Rugged Hide",    label = "Cure Rugged Hide",     icon = "Interface\\Icons\\INV_Misc_LeatherScrap_02" },
 };
 
--- XML frame name prefix for config controls (PanelSettings children)
--- All controls inside $parentPanelSettings resolve to this prefix.
 MC_CTRL = "MuteClockConfigFramePanelSettings";
 
 -- -------------------------------------------------------
--- getCraftEntry: exact key match only
+-- getCraftEntry
 -- -------------------------------------------------------
 function getCraftEntry(craftKey)
 	for _, entry in ipairs(TRACKED_CRAFTS) do
@@ -87,7 +78,7 @@ function mcLoad(key, default)
 end
 
 -- -------------------------------------------------------
--- VARIABLES_LOADED: read saved vars, apply state
+-- VARIABLES_LOADED
 -- -------------------------------------------------------
 function onVariablesLoaded()
 	if (not MuteClock) then MuteClock = {}; end
@@ -107,12 +98,9 @@ function onVariablesLoaded()
 	SHOW_OVERDUE      = mcLoad("show_overdue",       DEF_SHOW_OVERDUE);
 	SHOW_LAST_CRAFTED = mcLoad("show_last_crafted",  DEF_SHOW_LAST_CRAFTED);
 	SHOW_BADGE        = mcLoad("show_badge",         DEF_SHOW_BADGE);
-	USE_MINIMAP       = mcLoad("use_minimap",        DEF_USE_MINIMAP);
-	MINIMAP_ANGLE     = mcLoad("minimap_angle",      DEF_MINIMAP_ANGLE);
 
 	IS_VARIABLES_LOADED = 1;
 
-	-- Restore persisted peer cooldown data
 	if (MuteClock._peers) then
 		MC_PEERS = MuteClock._peers;
 	else
@@ -120,7 +108,6 @@ function onVariablesLoaded()
 		MC_PEERS = MuteClock._peers;
 	end
 
-	-- Restore persisted friends list
 	if (MuteClock._friends) then
 		MC_FRIENDS = MuteClock._friends;
 	else
@@ -130,7 +117,6 @@ function onVariablesLoaded()
 
 	doApplyDotAppearance();
 	doPositionFrame();
-	doUpdateMinimapButton();
 	doRunNotifications();
 end
 
@@ -152,8 +138,6 @@ function doSaveSettings()
 	p.show_overdue      = SHOW_OVERDUE;
 	p.show_last_crafted = SHOW_LAST_CRAFTED;
 	p.show_badge        = SHOW_BADGE;
-	p.use_minimap       = USE_MINIMAP;
-	p.minimap_angle     = MINIMAP_ANGLE;
 end
 
 -- -------------------------------------------------------
@@ -162,7 +146,7 @@ end
 function doApplyDotAppearance()
 	ClockFrame:SetWidth(DOT_SIZE);
 	ClockFrame:SetHeight(DOT_SIZE);
-	if (DOT_HIDDEN == 1 or USE_MINIMAP == 1) then
+	if (DOT_HIDDEN == 1) then
 		ClockFrame:Hide();
 	else
 		ClockFrame:Show();
@@ -173,66 +157,14 @@ end
 function doPositionFrame()
 	ClockFrame:ClearAllPoints();
 	if (POSITION_X == nil or POSITION_Y == nil) then
-		ClockFrame:SetPoint("TOP", "UIParent", "TOP", 0, 0);
+		ClockFrame:SetPoint("CENTER", "UIParent", "CENTER", 0, 0);
 	else
 		ClockFrame:SetPoint("CENTER", "UIParent", "BOTTOMLEFT", POSITION_X, POSITION_Y);
 	end
 end
 
 -- -------------------------------------------------------
--- Minimap button
--- -------------------------------------------------------
-function doUpdateMinimapButton()
-	if (USE_MINIMAP == 1) then
-		ClockFrame:Hide();
-		MuteClockMinimapButton:Show();
-		doPositionMinimapButton();
-		doUpdateMinimapDot();
-	else
-		MuteClockMinimapButton:Hide();
-		if (DOT_HIDDEN ~= 1) then
-			ClockFrame:Show();
-			doUpdateDot();
-		end
-	end
-end
-
-function doPositionMinimapButton()
-	local angle = MINIMAP_ANGLE * (math.pi / 180);
-	local r     = 80;
-	MuteClockMinimapButton:ClearAllPoints();
-	MuteClockMinimapButton:SetPoint("CENTER", "Minimap", "CENTER",
-		math.cos(angle) * r, math.sin(angle) * r);
-end
-
-function MinimapButton_OnDragStart()
-	MINIMAP_DRAGGING = true;
-end
-
-function MinimapButton_OnDragStop()
-	MINIMAP_DRAGGING = false;
-	doSaveSettings();
-end
-
-function MinimapButton_OnUpdate()
-	if (not MINIMAP_DRAGGING) then return; end
-	local cx, cy = Minimap:GetCenter();
-	local mx, my = GetCursorPosition();
-	local s = UIParent:GetEffectiveScale();
-	MINIMAP_ANGLE = math.atan2((my / s) - cy, (mx / s) - cx) * (180 / math.pi);
-	doPositionMinimapButton();
-end
-
-function MinimapButton_OnClick(btn, updown)
-	if (btn == "LeftButton" and updown == "UP" and not MINIMAP_DRAGGING) then
-		if (IsControlKeyDown()) then
-			MuteClockConfigFrame:Show();
-		end
-	end
-end
-
--- -------------------------------------------------------
--- Reset to defaults (preserves cooldown/history data)
+-- Reset to defaults
 -- -------------------------------------------------------
 function doSetDefaultSettings()
 	if (IS_VARIABLES_LOADED ~= 1) then return; end
@@ -248,20 +180,17 @@ function doSetDefaultSettings()
 	SHOW_OVERDUE      = DEF_SHOW_OVERDUE;
 	SHOW_LAST_CRAFTED = DEF_SHOW_LAST_CRAFTED;
 	SHOW_BADGE        = DEF_SHOW_BADGE;
-	USE_MINIMAP       = DEF_USE_MINIMAP;
-	MINIMAP_ANGLE     = DEF_MINIMAP_ANGLE;
 	doSaveSettings();
 	doApplyDotAppearance();
-	doPositionFrame();
-	doUpdateMinimapButton();
+	ClockFrame:ClearAllPoints();
+	ClockFrame:SetPoint("CENTER", "UIParent", "CENTER", 0, 0);
 	doInitializeConfig(1);
 end
 
 -- -------------------------------------------------------
 -- Config: tab switching
--- Panel names resolve from XML:
---   $parentPanelSettings -> MuteClockConfigFramePanelSettings
---   $parentPanelHistory  -> MuteClockConfigFramePanelHistory
+-- Reset Defaults lives inside PanelSettings so it hides
+-- automatically with the panel on other tabs.
 -- -------------------------------------------------------
 function doShowConfigTab(tabName)
 	MuteClockConfigFramePanelSettings:Hide();
@@ -284,11 +213,7 @@ function doShowConfigTab(tabName)
 end
 
 -- -------------------------------------------------------
--- Config: populate controls from current globals
--- Control names inside $parentPanelSettings resolve to:
---   MC_CTRL .. "CBAllChars" etc.
--- isDefaults=1: called from Lua (this is not the frame)
--- isDefaults=0: called from XML OnShow (this = config frame)
+-- Config: populate controls from globals
 -- -------------------------------------------------------
 function doInitializeConfig(isDefaults)
 	local p = MC_CTRL;
@@ -300,14 +225,12 @@ function doInitializeConfig(isDefaults)
 	getglobal(p.."CBLastCrafted"):SetChecked(SHOW_LAST_CRAFTED);
 	getglobal(p.."CBSmartIcon"):SetChecked(SMART_ICON);
 	getglobal(p.."CBBadge"):SetChecked(SHOW_BADGE);
-	getglobal(p.."CBMinimap"):SetChecked(USE_MINIMAP);
 	getglobal(p.."CBHide"):SetChecked(DOT_HIDDEN);
 	getglobal(p.."SliderSize"):SetValue(DOT_SIZE);
 end
 
 -- -------------------------------------------------------
--- Config: save a single control's value to globals
--- Called by OnClick / OnValueChanged; 'this' is the widget
+-- Config: save a single control's value
 -- -------------------------------------------------------
 function doConfigSave()
 	local n = this:GetName();
@@ -321,9 +244,6 @@ function doConfigSave()
 	elseif (n == p.."CBLastCrafted") then SHOW_LAST_CRAFTED = this:GetChecked() or 0;
 	elseif (n == p.."CBSmartIcon")   then SMART_ICON        = this:GetChecked() or 0;
 	elseif (n == p.."CBBadge")       then SHOW_BADGE        = this:GetChecked() or 0;
-	elseif (n == p.."CBMinimap")     then
-		USE_MINIMAP = this:GetChecked() or 0;
-		doUpdateMinimapButton();
 	elseif (n == p.."CBHide")        then DOT_HIDDEN        = this:GetChecked() or 0;
 	elseif (n == p.."SliderSize")    then
 		DOT_SIZE = floor(this:GetValue());
@@ -351,10 +271,10 @@ function doRecordHistory(charName, craftKey)
 end
 
 -- -------------------------------------------------------
--- Shared helpers for scroll panel population
+-- Scroll panel helpers
+-- 18px rows: enough for GameFontNormalSmall + button at 16px
 -- -------------------------------------------------------
-MC_LINE_H    = 14;  -- px per text line
-MC_LINE_PAD  = 2;   -- px gap between lines
+MC_ROW_H = 19;   -- px per row (font ~14px + 5px breathing room)
 
 function mcClearContent(contentFrame)
 	local i = 1;
@@ -368,6 +288,7 @@ function mcClearContent(contentFrame)
 	end
 end
 
+-- Plain text line (no button)
 function mcAddLine(contentFrame, lineIndex, text, r, g, b)
 	local name = contentFrame:GetName() .. "Line" .. lineIndex;
 	local fs   = getglobal(name);
@@ -377,18 +298,110 @@ function mcAddLine(contentFrame, lineIndex, text, r, g, b)
 		fs:SetJustifyH("LEFT");
 	end
 	fs:SetText(text);
-	if (r) then fs:SetTextColor(r, g, b); end
+	if (r) then fs:SetTextColor(r, g, b); else fs:SetTextColor(0.82, 0.82, 0.82); end
 	fs:ClearAllPoints();
-	fs:SetPoint("TOPLEFT", contentFrame, "TOPLEFT",
-		0, -((lineIndex - 1) * (MC_LINE_H + MC_LINE_PAD)));
+	fs:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", 0, -((lineIndex - 1) * MC_ROW_H));
 	fs:Show();
 	return lineIndex + 1;
 end
 
+-- Section header: slightly brighter blue-tinted label
+function mcAddHeader(contentFrame, lineIndex, text)
+	local name = contentFrame:GetName() .. "Line" .. lineIndex;
+	local fs   = getglobal(name);
+	if (not fs) then
+		fs = contentFrame:CreateFontString(name, "OVERLAY", "GameFontNormal");
+		fs:SetWidth(contentFrame:GetWidth());
+		fs:SetJustifyH("LEFT");
+	end
+	fs:SetText("|cFF5AC8FA" .. text .. "|r");
+	fs:SetTextColor(1, 1, 1);
+	fs:ClearAllPoints();
+	fs:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", 0, -((lineIndex - 1) * MC_ROW_H));
+	fs:Show();
+	return lineIndex + 1;
+end
+
+-- Blank spacer row
+function mcAddSpacer(contentFrame, lineIndex)
+	-- Just advance the line counter; reuse a hidden Line slot
+	local name = contentFrame:GetName() .. "Line" .. lineIndex;
+	local fs   = getglobal(name);
+	if (not fs) then
+		fs = contentFrame:CreateFontString(name, "OVERLAY", "GameFontNormalSmall");
+		fs:SetWidth(1);
+	end
+	fs:SetText(" ");
+	fs:ClearAllPoints();
+	fs:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", 0, -((lineIndex - 1) * MC_ROW_H));
+	fs:Show();
+	return lineIndex + 1;
+end
+
+-- Row with a small inline action button on the left.
+-- The button is 16x16 with just a coloured symbol and a
+-- very faint background — much less heavy than a WoW button template.
+function mcAddRowWithButton(contentFrame, lineIndex, labelText, btnSymbol, symR, symG, symB, btnCallback)
+	local yOff = -((lineIndex - 1) * MC_ROW_H);
+	local btnW = 16;
+	local gap  = 5;
+
+	local btnName = contentFrame:GetName() .. "Btn" .. lineIndex;
+	local btn = getglobal(btnName);
+	if (not btn) then
+		btn = CreateFrame("Button", btnName, contentFrame);
+		btn:SetWidth(btnW);
+		btn:SetHeight(btnW);
+
+		-- Faint dark background square
+		local bg = btn:CreateTexture(nil, "BACKGROUND");
+		bg:SetTexture("Interface\\Buttons\\WHITE8X8");
+		bg:SetVertexColor(0.08, 0.08, 0.10, 0.75);
+		bg:SetAllPoints();
+
+		-- Highlight on hover
+		local hl = btn:CreateTexture(nil, "HIGHLIGHT");
+		hl:SetTexture("Interface\\Buttons\\WHITE8X8");
+		hl:SetVertexColor(1, 1, 1, 0.12);
+		hl:SetAllPoints();
+
+		-- Symbol
+		local sym = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal");
+		sym:SetAllPoints();
+		sym:SetJustifyH("CENTER");
+		sym:SetJustifyV("MIDDLE");
+		btn._sym = sym;
+	end
+
+	btn._sym:SetText(btnSymbol);
+	btn._sym:SetTextColor(symR, symG, symB, 1);
+	btn:SetScript("OnClick", btnCallback);
+	btn:ClearAllPoints();
+	-- Centre the button vertically within the row
+	btn:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", 0, yOff - 1);
+	btn:Show();
+
+	-- Label to the right of the button
+	local fsName = contentFrame:GetName() .. "Line" .. lineIndex;
+	local fs = getglobal(fsName);
+	if (not fs) then
+		fs = contentFrame:CreateFontString(fsName, "OVERLAY", "GameFontNormalSmall");
+		fs:SetJustifyH("LEFT");
+	end
+	fs:SetWidth(contentFrame:GetWidth() - btnW - gap);
+	fs:SetText(labelText);
+	fs:SetTextColor(0.82, 0.82, 0.82);
+	fs:ClearAllPoints();
+	fs:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", btnW + gap, yOff);
+	fs:Show();
+
+	return lineIndex + 1;
+end
+
 function mcFinaliseScroll(scrollFrame, scrollBar, contentFrame, lineCount)
-	local totalH = lineCount * (MC_LINE_H + MC_LINE_PAD);
-	contentFrame:SetHeight(math.max(totalH, 1));
-	local viewH   = scrollFrame:GetHeight();
+	local totalH = math.max(lineCount * MC_ROW_H, 1);
+	contentFrame:SetHeight(totalH);
+	local viewH     = scrollFrame:GetHeight();
 	local maxScroll = math.max(totalH - viewH, 0);
 	scrollBar:SetMinMaxValues(0, maxScroll);
 	scrollBar:SetValue(0);
@@ -396,7 +409,7 @@ function mcFinaliseScroll(scrollFrame, scrollBar, contentFrame, lineCount)
 end
 
 -- -------------------------------------------------------
--- History: fill the history panel
+-- History panel
 -- -------------------------------------------------------
 function doPopulateHistory()
 	local scrollFrame  = MuteClockConfigFramePanelHistoryScrollFrame;
@@ -405,7 +418,7 @@ function doPopulateHistory()
 
 	local entries = {};
 	for charName, charData in pairs(MuteClock) do
-		if (type(charData) == "table") then
+		if (type(charData) == "table" and charName ~= "_peers" and charName ~= "_friends") then
 			for k, v in pairs(charData) do
 				if (string.len(k) > 8 and string.sub(k, -8) == "-history") then
 					local craftKey = string.sub(k, 1, string.len(k) - 8);
@@ -433,15 +446,15 @@ function doPopulateHistory()
 	local li = 1;
 
 	if (table.getn(entries) == 0) then
-		li = mcAddLine(contentFrame, li, "No crafts recorded yet.", 0.55, 0.55, 0.55);
-		li = mcAddLine(contentFrame, li, "Open a trade skill and craft something.", 0.4, 0.4, 0.4);
+		li = mcAddLine(contentFrame, li, "No crafts recorded yet.", 0.5, 0.5, 0.5);
+		li = mcAddLine(contentFrame, li, "Open a trade skill and craft something.", 0.38, 0.38, 0.38);
 	else
 		for _, e in ipairs(entries) do
-			local when = date("%a %d %b  %H:%M", e.t);
-			local isMine = (e.charName == CURRENT_PLAYER_NAME);
+			local when    = date("%a %d %b  %H:%M", e.t);
+			local isMine  = (e.charName == CURRENT_PLAYER_NAME);
 			local nameCol = isMine and "|cFFFFD100" or "|cFFAAAAAA";
 			li = mcAddLine(contentFrame, li,
-				nameCol .. e.charName .. "|r  |cFF00CCFF" .. e.label .. "|r  |cFF666666" .. when .. "|r");
+				nameCol .. e.charName .. "|r  |cFF00CCFF" .. e.label .. "|r  |cFF505050" .. when .. "|r");
 		end
 	end
 
@@ -463,6 +476,7 @@ function Clock_OnLoad()
 	this:RegisterEvent("CHAT_MSG_ADDON");
 	this:RegisterEvent("PARTY_MEMBERS_CHANGED");
 	this:RegisterEvent("RAID_ROSTER_UPDATE");
+
 	if (DEFAULT_CHAT_FRAME) then
 		DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00MuteClock|r loaded.");
 	end
@@ -475,31 +489,27 @@ function Clock_OnLoad()
 end
 
 function MuteClockConfig_OnLoad()
-	this:SetBackdropColor(0.05, 0.05, 0.05, 0.97);
-	this:SetBackdropBorderColor(0.3, 0.3, 0.3, 1);
-	MuteClockConfigFrameTopBar:SetVertexColor(0.08, 0.12, 0.18, 1);
-	MuteClockConfigFrameTitle:SetTextColor(0.9, 0.9, 1, 1);
-	MuteClockDivTracking:SetVertexColor(0.25, 0.55, 0.75, 0.5);
-	MuteClockDivDisplay:SetVertexColor(0.25, 0.55, 0.75, 0.5);
-	MuteClockDivDot:SetVertexColor(0.25, 0.55, 0.75, 0.5);
+	this:SetBackdropColor(0.06, 0.06, 0.08, 0.97);
+	this:SetBackdropBorderColor(0.20, 0.20, 0.26, 1);
+	MuteClockConfigFrameTopBar:SetVertexColor(0.07, 0.10, 0.16, 1);
+	MuteClockConfigFrameTitle:SetTextColor(0.85, 0.88, 1, 1);
+	MuteClockDivTracking:SetVertexColor(0.25, 0.55, 0.75, 0.4);
+	MuteClockDivDisplay:SetVertexColor(0.25, 0.55, 0.75, 0.4);
+	MuteClockDivDot:SetVertexColor(0.25, 0.55, 0.75, 0.4);
 	this:RegisterForDrag("LeftButton");
-	-- Default to Settings tab
 	MuteClockConfigFramePanelHistory:Hide();
 	MuteClockConfigFramePanelCrafters:Hide();
 	MuteClockConfigFramePanelNearby:Hide();
 	MuteClockConfigFramePanelSettings:Show();
 end
 
--- Badge font/colour setup - called after all XML frames exist
 function doBadgeInit()
 	MuteClockBadge:SetFont("Fonts\\FRIZQT__.TTF", 9, "OUTLINE");
 	MuteClockBadge:SetTextColor(1, 0.9, 0, 1);
-	MuteClockMinimapBadge:SetFont("Fonts\\FRIZQT__.TTF", 9, "OUTLINE");
-	MuteClockMinimapBadge:SetTextColor(1, 0.9, 0, 1);
 end
 
 -- -------------------------------------------------------
--- Config tooltip (Lua 5.0: varargs come via 'arg' table)
+-- Config tooltip
 -- -------------------------------------------------------
 function ConfigTooltip_Show(...)
 	GameTooltip:SetOwner(this, "ANCHOR_RIGHT");
@@ -522,10 +532,8 @@ function Clock_OnEvent()
 		onVariablesLoaded();
 
 	elseif (event == "PLAYER_ENTERING_WORLD") then
-		-- Group membership is established by now; broadcast our saved data
-		-- so peers immediately see our cooldowns without us opening anything.
 		if (IS_VARIABLES_LOADED == 1) then
-			doNetSend("HELLO");
+			doNetSendAll("HELLO");
 			doNetBroadcastAll();
 		end
 
@@ -552,7 +560,7 @@ function Clock_OnEvent()
 			if (idx and idx > 0) then
 				local cd = GetTradeSkillCooldown(idx);
 				if (cd and cd > 0) then
-					local key = CraftingItemName;
+					local key   = CraftingItemName;
 					local avail = time() + floor(cd);
 					MuteClock[CURRENT_PLAYER_NAME][key .. "-available"] = avail;
 					MuteClock[CURRENT_PLAYER_NAME][key .. "-notified"]  = nil;
@@ -566,13 +574,11 @@ function Clock_OnEvent()
 		end
 
 	elseif (event == "CHAT_MSG_ADDON") then
-		-- arg1=prefix, arg2=message, arg3=channel type, arg4=sender
 		if (arg1 == "MUTECLOCK" and arg4 ~= CURRENT_PLAYER_NAME) then
 			doNetOnMessage(arg4, arg2);
 		end
 
 	elseif (event == "PARTY_MEMBERS_CHANGED" or event == "RAID_ROSTER_UPDATE") then
-		-- Rebuild nearby: only keep people still in the group
 		local newNearby = {};
 		for name in pairs(MC_NEARBY) do
 			if (doIsInGroup(name)) then
@@ -584,10 +590,12 @@ function Clock_OnEvent()
 		doNetBroadcastAll();
 
 	elseif (event == "TRADE_SKILL_SHOW" or event == "TRADE_SKILL_CLOSE") then
+		local knownCrafts = {};
 		local n = GetNumTradeSkills();
 		for i = 1, n do
 			local name, kind = GetTradeSkillInfo(i);
 			if (kind ~= "header" and getCraftEntry(name)) then
+				knownCrafts[name] = true;
 				local cd = GetTradeSkillCooldown(i);
 				if (cd and cd > 0) then
 					MuteClock[CURRENT_PLAYER_NAME][name .. "-available"] = time() + floor(cd);
@@ -600,21 +608,33 @@ function Clock_OnEvent()
 				end
 			end
 		end
+
+		local charData = MuteClock[CURRENT_PLAYER_NAME];
+		for k in pairs(charData) do
+			if (string.len(k) > 10 and string.sub(k, -10) == "-available") then
+				local craftKey = string.sub(k, 1, string.len(k) - 10);
+				if (getCraftEntry(craftKey) and not knownCrafts[craftKey]) then
+					charData[craftKey .. "-available"] = nil;
+					charData[craftKey .. "-notified"]  = nil;
+					charData[craftKey .. "-crafted"]   = nil;
+				end
+			end
+		end
+
 		doNetBroadcastAll();
 	end
 end
 
 -- -------------------------------------------------------
--- Per-frame update: 1s action interval
+-- Per-frame update (5s tick)
 -- -------------------------------------------------------
 function Clock_OnUpdate(arg1)
 	ClockFrame.TimeSinceLastUpdate = ClockFrame.TimeSinceLastUpdate + arg1;
-	if (ClockFrame.TimeSinceLastUpdate >= 1.0) then
+	if (ClockFrame.TimeSinceLastUpdate >= 5.0) then
 		ClockFrame.TimeSinceLastUpdate = 0;
 		if (IS_VARIABLES_LOADED ~= 1) then return; end
 		doRunNotifications();
 		doUpdateDot();
-		doUpdateMinimapDot();
 	end
 
 	ClockFrame.CraftersRefreshTimer = (ClockFrame.CraftersRefreshTimer or 0) + arg1;
@@ -627,7 +647,7 @@ function Clock_OnUpdate(arg1)
 end
 
 -- -------------------------------------------------------
--- Drag and click - main dot
+-- Drag and click
 -- -------------------------------------------------------
 function ClockFrame_OnDragStart()
 	ClockFrame:ClearAllPoints();
@@ -669,27 +689,28 @@ function SlashCommandHandler(msg)
 	elseif (cmd == "debug") then
 		local ch = doNetGetChannel();
 		DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00MuteClock|r debug:");
-		DEFAULT_CHAT_FRAME:AddMessage("  Channel: " .. (ch or "|cFFFF4444none (not in party/raid)|r"));
+		DEFAULT_CHAT_FRAME:AddMessage("  Party: " .. (ch or "|cFFFF4444none|r"));
+		DEFAULT_CHAT_FRAME:AddMessage("  Guild: " .. (doNetGetGuildChannel() or "|cFFFF4444none|r"));
 		DEFAULT_CHAT_FRAME:AddMessage("  Party members: " .. GetNumPartyMembers());
-		DEFAULT_CHAT_FRAME:AddMessage("  Raid members: " .. GetNumRaidMembers());
-		DEFAULT_CHAT_FRAME:AddMessage("  My payload: |cFFAAAAAA" .. (doNetBuildPayload() ~= "" and doNetBuildPayload() or "(empty - open a trade skill window first)") .. "|r");
-		local peerCount = 0;
+		DEFAULT_CHAT_FRAME:AddMessage("  Raid members: "  .. GetNumRaidMembers());
+		local pay = doNetBuildPayload();
+		DEFAULT_CHAT_FRAME:AddMessage("  Payload: |cFFAAAAAA" .. (pay ~= "" and pay or "(empty)") .. "|r");
+		local pc = 0;
 		for name, data in pairs(MC_PEERS) do
-			peerCount = peerCount + 1;
-			local craftCount = 0;
-			for _ in pairs(data) do craftCount = craftCount + 1; end
-			DEFAULT_CHAT_FRAME:AddMessage("  Peer: |cFFFFD100" .. name .. "|r  (" .. craftCount .. " crafts)");
+			pc = pc + 1;
+			local cc = 0;
+			for _ in pairs(data) do cc = cc + 1; end
+			DEFAULT_CHAT_FRAME:AddMessage("  Peer: |cFFFFD100" .. name .. "|r (" .. cc .. " crafts)");
 		end
-		if (peerCount == 0) then
+		if (pc == 0) then
 			DEFAULT_CHAT_FRAME:AddMessage("  |cFFAAAAAAPeers: none seen yet|r");
 		end
-		DEFAULT_CHAT_FRAME:AddMessage("  Sending test HELLO now...");
-		doNetSend("HELLO");
+		doNetSendAll("HELLO");
 	end
 end
 
 -- -------------------------------------------------------
--- Time formatting helpers
+-- Time formatting
 -- -------------------------------------------------------
 function doFormatCountdown(remaining)
 	if (remaining <= 0) then return "Ready"; end
@@ -706,7 +727,6 @@ function doFormatCountdown(remaining)
 end
 
 function doFormatOverdue(remaining)
-	-- remaining <= 0; returns e.g. "+2h 15m" or nil if < 1 min
 	local e = -remaining;
 	if (e < 60) then return nil; end
 	local d = floor(e / 86400);
@@ -735,12 +755,12 @@ function doFormatTimestamp(t)
 end
 
 -- -------------------------------------------------------
--- Collect cooldown rows (filters by scope setting)
+-- Collect cooldown rows
 -- -------------------------------------------------------
 function doCollectCooldownData()
 	local results = {};
 	for charName, charData in pairs(MuteClock) do
-		if (type(charData) == "table") then
+		if (type(charData) == "table" and charName ~= "_peers" and charName ~= "_friends") then
 			local inScope = (SH_ALL_CHARACTERS == 1) or (charName == CURRENT_PLAYER_NAME);
 			if (inScope) then
 				for k, v in pairs(charData) do
@@ -766,7 +786,7 @@ function doCollectCooldownData()
 end
 
 -- -------------------------------------------------------
--- Dot status (0=no data, 1=ready, 2=<4h, 3=long CD)
+-- Dot status (0=no data, 1=ready, 2=<4h, 3=long)
 -- -------------------------------------------------------
 function doGetDotStatus()
 	if (not MuteClock) then return 0, 0; end
@@ -775,7 +795,7 @@ function doGetDotStatus()
 	local hasSoon  = false;
 	local readyN   = 0;
 	for charName, charData in pairs(MuteClock) do
-		if (type(charData) == "table") then
+		if (type(charData) == "table" and charName ~= "_peers" and charName ~= "_friends") then
 			local inScope = (SH_ALL_CHARACTERS == 1) or (charName == CURRENT_PLAYER_NAME);
 			if (inScope) then
 				for k, v in pairs(charData) do
@@ -803,12 +823,12 @@ function doGetDotStatus()
 end
 
 -- -------------------------------------------------------
--- SmartIcon: highest-priority ready craft
+-- SmartIcon: best ready craft entry
 -- -------------------------------------------------------
 function doGetSmartIcon()
 	local best = {};
 	for charName, charData in pairs(MuteClock) do
-		if (type(charData) == "table") then
+		if (type(charData) == "table" and charName ~= "_peers" and charName ~= "_friends") then
 			local inScope = (SH_ALL_CHARACTERS == 1) or (charName == CURRENT_PLAYER_NAME);
 			if (inScope) then
 				for k, v in pairs(charData) do
@@ -842,18 +862,6 @@ end
 
 -- -------------------------------------------------------
 -- Networking
--- Addon prefix: "MUTECLOCK"
--- Sends on RAID if in a raid, PARTY if in a party, silent otherwise.
--- Peer data is kept indefinitely once received so cooldown timers
--- keep counting down even after the peer leaves the group.
---
--- Message format:
---   REPLY:<data>   full payload broadcast on roster change or trade skill scan
---   CD:<data>      single craft update after a craft fires
---
--- <data> = semicolon-delimited records, each "craftKey|timestamp"
--- Pipe separates key from value so craft keys containing colons
--- (e.g. "Transmute: Arcanite") are unambiguous.
 -- -------------------------------------------------------
 function doNetGetChannel()
 	if (GetNumRaidMembers() > 0)  then return "RAID";  end
@@ -861,10 +869,26 @@ function doNetGetChannel()
 	return nil;
 end
 
+function doNetGetGuildChannel()
+	if (IsInGuild and IsInGuild()) then return "GUILD"; end
+	return nil;
+end
+
 function doNetSend(msg)
 	local ch = doNetGetChannel();
 	if (not ch) then return; end
 	SendAddonMessage("MUTECLOCK", msg, ch);
+end
+
+function doNetSendGuild(msg)
+	local ch = doNetGetGuildChannel();
+	if (not ch) then return; end
+	SendAddonMessage("MUTECLOCK", msg, ch);
+end
+
+function doNetSendAll(msg)
+	doNetSend(msg);
+	doNetSendGuild(msg);
 end
 
 function doNetBuildPayload()
@@ -885,16 +909,15 @@ end
 function doNetBroadcastAll()
 	local payload = doNetBuildPayload();
 	if (payload ~= "") then
-		doNetSend("REPLY:" .. payload);
+		doNetSendAll("REPLY:" .. payload);
 	end
 end
 
 function doNetSendCraft(craftKey, avail)
-	doNetSend("CD:" .. craftKey .. "~" .. tostring(avail));
+	doNetSendAll("CD:" .. craftKey .. "~" .. tostring(avail));
 end
 
 function doNetParseRecord(record)
-	-- record = "craftKey~timestamp"
 	local sep = string.find(record, "~");
 	if (not sep) then return nil, nil; end
 	local craftKey = string.sub(record, 1, sep - 1);
@@ -905,7 +928,6 @@ end
 function doNetOnMessage(sender, msg)
 	if (msg == "HELLO") then
 		if (not MC_PEERS[sender]) then MC_PEERS[sender] = {}; end
-		-- Add to nearby if not already a friend
 		if (not MC_FRIENDS[sender]) then
 			MC_NEARBY[sender] = true;
 		end
@@ -947,7 +969,7 @@ function doNetOnMessage(sender, msg)
 end
 
 -- -------------------------------------------------------
--- Group membership helper
+-- Group membership
 -- -------------------------------------------------------
 function doIsInGroup(name)
 	local i;
@@ -965,17 +987,16 @@ end
 -- Friend management
 -- -------------------------------------------------------
 function mcAddFriend(name)
-	MC_FRIENDS[name]  = true;
-	MC_NEARBY[name]   = nil;
+	MC_FRIENDS[name]   = true;
+	MC_NEARBY[name]    = nil;
 	MuteClock._friends = MC_FRIENDS;
 	if (MuteClockConfigFramePanelCrafters:IsVisible()) then doPopulateCrafters(); end
 	if (MuteClockConfigFramePanelNearby:IsVisible())   then doPopulateNearby();   end
 end
 
 function mcRemoveFriend(name)
-	MC_FRIENDS[name]  = nil;
+	MC_FRIENDS[name]   = nil;
 	MuteClock._friends = MC_FRIENDS;
-	-- Put them back in nearby if still in group
 	if (doIsInGroup(name)) then
 		MC_NEARBY[name] = true;
 	end
@@ -984,53 +1005,18 @@ function mcRemoveFriend(name)
 end
 
 -- -------------------------------------------------------
--- Shared scroll panel row builder with a button
--- -------------------------------------------------------
-function mcAddRowWithButton(contentFrame, lineIndex, labelText, btnText, btnCallback)
-	local rowH   = MC_LINE_H + MC_LINE_PAD;
-	local yOff   = -((lineIndex - 1) * rowH);
-	local btnW   = 18;
-	local pad    = 2;
-
-	-- Button
-	local btnName = contentFrame:GetName() .. "Btn" .. lineIndex;
-	local btn = getglobal(btnName);
-	if (not btn) then
-		btn = CreateFrame("Button", btnName, contentFrame);
-		btn:SetWidth(btnW);
-		btn:SetHeight(btnW);
-		local fs = btn:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall");
-		fs:SetAllPoints();
-		fs:SetJustifyH("CENTER");
-		btn._label = fs;
-		btn:SetHighlightTexture("Interface\\Buttons\\UI-Panel-Button-Highlight");
-		btn:SetNormalTexture("Interface\\Buttons\\UI-Panel-Button-Up");
-		btn:SetPushedTexture("Interface\\Buttons\\UI-Panel-Button-Down");
-	end
-	btn._label:SetText(btnText);
-	btn:SetScript("OnClick", btnCallback);
-	btn:ClearAllPoints();
-	btn:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", 0, yOff - 1);
-	btn:Show();
-
-	-- Label FontString
-	local fsName = contentFrame:GetName() .. "Line" .. lineIndex;
-	local fs = getglobal(fsName);
-	if (not fs) then
-		fs = contentFrame:CreateFontString(fsName, "OVERLAY", "GameFontNormalSmall");
-		fs:SetJustifyH("LEFT");
-	end
-	fs:SetWidth(contentFrame:GetWidth() - btnW - pad);
-	fs:SetText(labelText);
-	fs:ClearAllPoints();
-	fs:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", btnW + pad, yOff);
-	fs:Show();
-
-	return lineIndex + 1;
-end
-
--- -------------------------------------------------------
--- Crafters panel: persistent friends with cooldowns
+-- Crafters panel
+-- Respects GROUP_BY_CRAFT setting.
+--
+-- By friend (GROUP_BY_CRAFT=0):
+--   [−] Friendname
+--       Mooncloth   Ready
+--       Arcanite    2h 15m
+--
+-- By craft (GROUP_BY_CRAFT=1):
+--   Mooncloth
+--   [−] Friendname   Ready
+--   [−] OtherFriend  3d 2h
 -- -------------------------------------------------------
 function doPopulateCrafters()
 	local scrollFrame  = MuteClockConfigFramePanelCraftersScrollFrame;
@@ -1047,16 +1033,62 @@ function doPopulateCrafters()
 	table.sort(friends);
 
 	if (table.getn(friends) == 0) then
-		li = mcAddLine(contentFrame, li, "No crafters added yet.", 0.55, 0.55, 0.55);
-		li = mcAddLine(contentFrame, li, "Add people from the Nearby tab.", 0.4, 0.4, 0.4);
+		li = mcAddLine(contentFrame, li, "No crafters added yet.", 0.5, 0.5, 0.5);
+		li = mcAddLine(contentFrame, li, "Add people from the Nearby tab.", 0.38, 0.38, 0.38);
+		mcFinaliseScroll(scrollFrame, scrollBar, contentFrame, li - 1);
+		return;
+	end
+
+	local now = time();
+
+	if (GROUP_BY_CRAFT == 1) then
+		-- ── By craft ────────────────────────────────────────
+		local first = true;
+		for _, entry in ipairs(TRACKED_CRAFTS) do
+			local rows = {};
+			for _, name in ipairs(friends) do
+				local ts = (MC_PEERS[name] or {})[entry.key];
+				if (ts ~= nil) then
+					local remaining = (ts > 0) and (ts - now) or 0;
+					table.insert(rows, { name = name, remaining = remaining });
+				end
+			end
+
+			if (table.getn(rows) > 0) then
+				if (not first) then li = mcAddSpacer(contentFrame, li); end
+				first = false;
+
+				table.sort(rows, function(a, b)
+					if ((a.remaining <= 0) ~= (b.remaining <= 0)) then return a.remaining <= 0; end
+					return a.name < b.name;
+				end);
+
+				li = mcAddHeader(contentFrame, li, entry.label);
+
+				for _, row in ipairs(rows) do
+					local removeName = row.name;
+					local timeStr = doFormatCrafterTime(row.remaining);
+					li = mcAddRowWithButton(contentFrame, li,
+						"|cFFDDDDDD" .. row.name .. "|r  " .. timeStr,
+						"-", 0.85, 0.3, 0.3,
+						function() mcRemoveFriend(removeName); end);
+				end
+			end
+		end
+
 	else
-		local now = time();
+		-- ── By friend ───────────────────────────────────────
+		local first = true;
 		for _, name in ipairs(friends) do
 			local data = MC_PEERS[name] or {};
+
+			if (not first) then li = mcAddSpacer(contentFrame, li); end
+			first = false;
+
 			local removeName = name;
 			li = mcAddRowWithButton(contentFrame, li,
 				"|cFFFFD100" .. name .. "|r",
-				"-",
+				"-", 0.85, 0.3, 0.3,
 				function() mcRemoveFriend(removeName); end);
 
 			local hasCraft = false;
@@ -1065,24 +1097,36 @@ function doPopulateCrafters()
 				if (ts ~= nil) then
 					hasCraft = true;
 					local remaining = (ts > 0) and (ts - now) or 0;
-					local timeStr = (remaining <= 0) and "|cFF22FF22Ready|r"
-						or ("|cFF888888" .. doFormatCountdown(remaining) .. "|r");
+					local timeStr = doFormatCrafterTime(remaining);
 					li = mcAddLine(contentFrame, li,
-						"  |cFF00CCFF" .. entry.label .. "|r  " .. timeStr);
+						"    |cFF888888" .. entry.label .. "|r  " .. timeStr);
 				end
 			end
 			if (not hasCraft) then
-				li = mcAddLine(contentFrame, li, "  No craft data yet.", 0.35, 0.35, 0.35);
+				li = mcAddLine(contentFrame, li, "    |cFF3A3A3ANo craft data yet.|r");
 			end
-			li = li + 1;
 		end
 	end
 
 	mcFinaliseScroll(scrollFrame, scrollBar, contentFrame, li - 1);
 end
 
+-- Shared cooldown time string for the Crafters panel
+function doFormatCrafterTime(remaining)
+	if (remaining <= 0) then
+		return "|cFF33DD33Ready|r";
+	end
+	local r, g, b;
+	if     (remaining <= 3600)  then r, g, b = 1.0, 0.75, 0.1;
+	elseif (remaining <= 14400) then r, g, b = 1.0, 0.50, 0.1;
+	else                             r, g, b = 0.55, 0.55, 0.55; end
+	return string.format("|cFF%02X%02X%02X%s|r",
+		floor(r * 255), floor(g * 255), floor(b * 255),
+		doFormatCountdown(remaining));
+end
+
 -- -------------------------------------------------------
--- Nearby panel: current group addon users not yet friended
+-- Nearby panel
 -- -------------------------------------------------------
 function doPopulateNearby()
 	local scrollFrame  = MuteClockConfigFramePanelNearbyScrollFrame;
@@ -1101,14 +1145,14 @@ function doPopulateNearby()
 	table.sort(nearby);
 
 	if (table.getn(nearby) == 0) then
-		li = mcAddLine(contentFrame, li, "No addon users in your group.", 0.55, 0.55, 0.55);
-		li = mcAddLine(contentFrame, li, "Group with other MuteClock users to see them here.", 0.4, 0.4, 0.4);
+		li = mcAddLine(contentFrame, li, "No addon users in your group.", 0.5, 0.5, 0.5);
+		li = mcAddLine(contentFrame, li, "Group with MuteClock users to see them here.", 0.38, 0.38, 0.38);
 	else
 		for _, name in ipairs(nearby) do
 			local addName = name;
 			li = mcAddRowWithButton(contentFrame, li,
-				"|cFFAAAAAA" .. name .. "|r",
-				"+",
+				"|cFFCCCCCC" .. name .. "|r",
+				"+", 0.2, 0.85, 0.2,
 				function() mcAddFriend(addName); end);
 		end
 	end
@@ -1117,23 +1161,13 @@ function doPopulateNearby()
 end
 
 -- -------------------------------------------------------
--- Tooltip: build and show
+-- Tooltip
 -- -------------------------------------------------------
 function doShowTooltip()
 	if (IS_VARIABLES_LOADED ~= 1) then return; end
 	GameTooltip:SetOwner(ClockFrame, "ANCHOR_NONE");
 	GameTooltip:SetPoint("TOPRIGHT", "ClockFrame", "TOPLEFT", -4, -8);
 	doFillTooltip();
-	GameTooltip:Show();
-end
-
-function doShowMinimapTooltip()
-	if (IS_VARIABLES_LOADED ~= 1) then return; end
-	GameTooltip:SetOwner(MuteClockMinimapButton, "ANCHOR_NONE");
-	GameTooltip:SetPoint("TOPRIGHT", "MuteClockMinimapButton", "TOPLEFT", -4, -8);
-	doFillTooltip();
-	GameTooltip:AddLine(" ");
-	GameTooltip:AddLine("|cFF666666Ctrl+click to open config|r");
 	GameTooltip:Show();
 end
 
@@ -1148,12 +1182,12 @@ function doFillTooltip()
 
 	local header = "|cFFFFD100Craft Cooldowns|r";
 	if (readyN > 0) then header = header .. "  |cFF22FF22" .. readyN .. " ready|r"; end
-	if (waitN  > 0) then header = header .. "  |cFF888888" .. waitN  .. " waiting|r"; end
+	if (waitN  > 0) then header = header .. "  |cFF777777" .. waitN  .. " waiting|r"; end
 	GameTooltip:AddLine(header);
 
 	if (table.getn(data) == 0) then
 		GameTooltip:AddLine(" ");
-		GameTooltip:AddLine("No data yet. Open a trade skill window.", 0.55, 0.55, 0.55);
+		GameTooltip:AddLine("No data yet. Open a trade skill window.", 0.5, 0.5, 0.5);
 		return;
 	end
 
@@ -1229,7 +1263,7 @@ function doTooltipCooldownLine(label, remaining, lastCrafted)
 	local lastStr = "";
 	if (SHOW_LAST_CRAFTED == 1 and lastCrafted and lastCrafted > 0) then
 		local ts = doFormatTimestamp(lastCrafted);
-		if (ts) then lastStr = "  |cFF666666" .. ts .. "|r"; end
+		if (ts) then lastStr = "  |cFF505050" .. ts .. "|r"; end
 	end
 
 	if (remaining <= 0) then
@@ -1248,7 +1282,7 @@ function doTooltipCooldownLine(label, remaining, lastCrafted)
 		local timeStr = doFormatCountdown(remaining);
 		if (SHOW_READY_TIME == 1) then
 			local rt = doFormatReadyTime(remaining);
-			if (rt) then timeStr = timeStr .. "  |cFF888888" .. rt .. "|r"; end
+			if (rt) then timeStr = timeStr .. "  |cFF777777" .. rt .. "|r"; end
 		end
 		timeStr = timeStr .. lastStr;
 		local r, g, b;
@@ -1265,7 +1299,7 @@ end
 -- -------------------------------------------------------
 function doRunNotifications()
 	for charName, charData in pairs(MuteClock) do
-		if (type(charData) == "table") then
+		if (type(charData) == "table" and charName ~= "_peers" and charName ~= "_friends") then
 			local inScope = (SH_ALL_CHARACTERS == 1) or (charName == CURRENT_PLAYER_NAME);
 			if (inScope) then
 				for k, v in pairs(charData) do
@@ -1307,7 +1341,7 @@ end
 -- Dot update
 -- -------------------------------------------------------
 function doUpdateDot()
-	if (DOT_HIDDEN == 1 or USE_MINIMAP == 1) then return; end
+	if (DOT_HIDDEN == 1) then return; end
 	local status, readyN = doGetDotStatus();
 
 	if (SMART_ICON == 1 and status == 1) then
@@ -1335,40 +1369,5 @@ function doUpdateBadge(readyN)
 		MuteClockBadge:Show();
 	else
 		MuteClockBadge:Hide();
-	end
-end
-
--- -------------------------------------------------------
--- Minimap dot update
--- -------------------------------------------------------
-function doUpdateMinimapDot()
-	if (USE_MINIMAP ~= 1) then return; end
-	local status, readyN = doGetDotStatus();
-
-	if (SMART_ICON == 1 and status == 1) then
-		local entry = doGetSmartIcon();
-		if (entry) then
-			MuteClockMinimapButtonIcon:SetTexture(entry.icon);
-			MuteClockMinimapButtonIcon:SetVertexColor(1, 1, 1, 1);
-			doUpdateMinimapBadge(readyN);
-			return;
-		end
-	end
-
-	MuteClockMinimapButtonIcon:SetTexture("Interface\\Buttons\\WHITE8X8");
-	if     (status == 0) then MuteClockMinimapButtonIcon:SetVertexColor(0.3,  0.3,  0.3,  1);
-	elseif (status == 1) then MuteClockMinimapButtonIcon:SetVertexColor(0.1,  0.9,  0.1,  1);
-	elseif (status == 2) then MuteClockMinimapButtonIcon:SetVertexColor(0.95, 0.85, 0.1,  1);
-	else                      MuteClockMinimapButtonIcon:SetVertexColor(0.9,  0.15, 0.15, 1);
-	end
-	doUpdateMinimapBadge(readyN);
-end
-
-function doUpdateMinimapBadge(readyN)
-	if (SHOW_BADGE == 1 and readyN > 0) then
-		MuteClockMinimapBadge:SetText(readyN);
-		MuteClockMinimapBadge:Show();
-	else
-		MuteClockMinimapBadge:Hide();
 	end
 end
