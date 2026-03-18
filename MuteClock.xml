@@ -3,7 +3,12 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 	<Script file="MuteClock.lua"/>
 
 	<!-- ============================================================
-	     ClockFrame  –  the movable dot indicator
+	     Hidden dropdown anchor for right-click context menu
+	     ============================================================ -->
+	<Frame name="MuteClockContextMenu" inherits="UIDropDownMenuTemplate" parent="UIParent"/>
+
+	<!-- ============================================================
+	     ClockFrame  -  dot indicator (DISPLAY_MODE=0)
 	     ============================================================ -->
 	<Frame name="ClockFrame" frameStrata="HIGH" toplevel="true" movable="true" enableMouse="true" parent="UIParent">
 		<Size><AbsDimension x="16" y="16"/></Size>
@@ -35,32 +40,133 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 	</Frame>
 
 	<!-- ============================================================
-	     Config frame   280 x 480
+	     ClockBarFrame  -  slim bar indicator (DISPLAY_MODE=1)
+	     Width 120px. Up to 3 rows of 14px each = 42px tall.
+	     Each row: 4px pip + gap + text.
+	     ============================================================ -->
+	<Frame name="ClockBarFrame" frameStrata="HIGH" toplevel="true" movable="true" enableMouse="true" parent="UIParent" hidden="true">
+		<Size><AbsDimension x="120" y="44"/></Size>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="MuteClockBarBg" file="Interface\Buttons\WHITE8X8" setAllPoints="true"/>
+			</Layer>
+			<Layer level="OVERLAY">
+				<!-- Row 1 -->
+				<Texture name="MuteClockBarPip1" file="Interface\Buttons\WHITE8X8" hidden="true">
+					<Size><AbsDimension x="5" y="5"/></Size>
+					<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="3" y="-5"/></Offset></Anchor></Anchors>
+				</Texture>
+				<FontString name="MuteClockBarLine1" inherits="GameFontNormalSmall" hidden="true">
+					<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="11" y="-3"/></Offset></Anchor></Anchors>
+				</FontString>
+				<!-- Row 2 -->
+				<Texture name="MuteClockBarPip2" file="Interface\Buttons\WHITE8X8" hidden="true">
+					<Size><AbsDimension x="5" y="5"/></Size>
+					<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="3" y="-19"/></Offset></Anchor></Anchors>
+				</Texture>
+				<FontString name="MuteClockBarLine2" inherits="GameFontNormalSmall" hidden="true">
+					<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="11" y="-17"/></Offset></Anchor></Anchors>
+				</FontString>
+				<!-- Row 3 -->
+				<Texture name="MuteClockBarPip3" file="Interface\Buttons\WHITE8X8" hidden="true">
+					<Size><AbsDimension x="5" y="5"/></Size>
+					<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="3" y="-33"/></Offset></Anchor></Anchors>
+				</Texture>
+				<FontString name="MuteClockBarLine3" inherits="GameFontNormalSmall" hidden="true">
+					<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="11" y="-31"/></Offset></Anchor></Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnEnter>doShowBarTooltip();</OnEnter>
+			<OnLeave>GameTooltip:Hide();</OnLeave>
+			<OnMouseUp>AltFrame_ClickHandler(arg1, "UP");</OnMouseUp>
+			<OnDragStart>this:StartMoving();</OnDragStart>
+			<OnDragStop>ClockBarFrame_OnDragStop();</OnDragStop>
+			<OnLoad>MuteClockBar_OnLoad();</OnLoad>
+		</Scripts>
+	</Frame>
+
+	<!-- ============================================================
+	     ClockMiniPanel  -  compact floating panel (DISPLAY_MODE=2)
+	     130 x 68px. Title row + 3 craft rows.
+	     ============================================================ -->
+	<Frame name="ClockMiniPanel" frameStrata="HIGH" toplevel="true" movable="true" enableMouse="true" parent="UIParent" hidden="true">
+		<Size><AbsDimension x="130" y="68"/></Size>
+		<Backdrop bgFile="Interface\ChatFrame\ChatFrameBackground" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
+			<BackgroundInsets><AbsInset left="3" right="3" top="3" bottom="3"/></BackgroundInsets>
+			<TileSize><AbsValue val="16"/></TileSize>
+			<EdgeSize><AbsValue val="12"/></EdgeSize>
+		</Backdrop>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture name="MuteClockMiniPanelBg" file="Interface\Buttons\WHITE8X8" setAllPoints="true"/>
+				<Texture name="MuteClockMiniPanelBorder" file="Interface\Buttons\WHITE8X8">
+					<Size><AbsDimension x="130" y="1"/></Size>
+					<Anchors><Anchor point="TOP"/></Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<!-- Title -->
+				<FontString inherits="GameFontNormalSmall" text="MuteClock" justifyH="CENTER">
+					<Color r="0.6" g="0.75" b="1"/>
+					<Anchors><Anchor point="TOP"><Offset><AbsDimension x="0" y="-4"/></Offset></Anchor></Anchors>
+				</FontString>
+				<!-- Label col (left) -->
+				<FontString name="MuteClockMiniLabel1" inherits="GameFontNormalSmall" hidden="true" justifyH="LEFT">
+					<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="6" y="-18"/></Offset></Anchor></Anchors>
+				</FontString>
+				<FontString name="MuteClockMiniLabel2" inherits="GameFontNormalSmall" hidden="true" justifyH="LEFT">
+					<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="6" y="-32"/></Offset></Anchor></Anchors>
+				</FontString>
+				<FontString name="MuteClockMiniLabel3" inherits="GameFontNormalSmall" hidden="true" justifyH="LEFT">
+					<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="6" y="-46"/></Offset></Anchor></Anchors>
+				</FontString>
+				<!-- Value col (right) -->
+				<FontString name="MuteClockMiniVal1" inherits="GameFontNormalSmall" hidden="true" justifyH="RIGHT">
+					<Anchors><Anchor point="TOPRIGHT"><Offset><AbsDimension x="-6" y="-18"/></Offset></Anchor></Anchors>
+				</FontString>
+				<FontString name="MuteClockMiniVal2" inherits="GameFontNormalSmall" hidden="true" justifyH="RIGHT">
+					<Anchors><Anchor point="TOPRIGHT"><Offset><AbsDimension x="-6" y="-32"/></Offset></Anchor></Anchors>
+				</FontString>
+				<FontString name="MuteClockMiniVal3" inherits="GameFontNormalSmall" hidden="true" justifyH="RIGHT">
+					<Anchors><Anchor point="TOPRIGHT"><Offset><AbsDimension x="-6" y="-46"/></Offset></Anchor></Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnLoad>MuteClockMiniPanel_OnLoad();</OnLoad>
+			<OnEnter>doShowMiniTooltip();</OnEnter>
+			<OnLeave>GameTooltip:Hide();</OnLeave>
+			<OnMouseUp>AltFrame_ClickHandler(arg1, "UP");</OnMouseUp>
+			<OnDragStart>this:StartMoving();</OnDragStart>
+			<OnDragStop>ClockMiniPanel_OnDragStop();</OnDragStop>
+		</Scripts>
+	</Frame>
+
+	<!-- ============================================================
+	     Config frame   500 x 480
 
 	     Zones:
 	       y=   0 .. -28   Title bar
-	       y= -28 .. -56   Tab row  (tabs at y=-32, h=22)
-	       y= -56 .. -480  Panels   (h=424 each, y=-56)
+	       y= -28 .. -56   Tab row  (3 tabs: Planner | Crafters | Settings)
+	       y= -56 .. -480  Panels (h=424, x=8, w=484)
 
-	     PanelSettings internal layout (y from panel top = 0):
-	         0    DivTracking  (h=14)
-	        -20   CBAllChars
-	        -52   CBNotify
-	        -84   DivDisplay
-	       -104   CBGroupByCraft
-	       -136   CBReadyTime
-	       -168   CBOverdue
-	       -200   CBLastCrafted
-	       -232   DivDot
-	       -254   SliderSize   (h=16, visual ~36px including label)
-	       -298   CBSmartIcon
-	       -330   CBBadge
-	       -362   CBHide
-	       -404   BtnDefaults  (32px gap, button h=22, bottom=-426)
-	     Panel h=424 fits with ~2px to spare. ✓
+	     Crafters panel: two columns (unchanged from v1)
+	       Left x=0 w=206+scrollbar, Divider x=232, Right x=237 w=206+scrollbar
+
+	     Planner panel: full-width scroll
+	       484 x 424, scroll content 462 x variable
+
+	     Settings panel: full-width 484px, two-col DISPLAY section
+	       TRACKING   y=0    (2 items)
+	       DISPLAY    y=-84  (3 left + 2 right)
+	       NOTIFICATIONS y=-200 (CBNotify + DropDownRemind)
+	       INDICATOR  y=-270 (SliderSize, DropDownDisplay, DropDownIcon, CBBadge, CBHide)
+	       BtnDefaults y=-420
 	     ============================================================ -->
 	<Frame name="MuteClockConfigFrame" toplevel="true" parent="UIParent" frameStrata="DIALOG" hidden="true" enableMouse="true" movable="true">
-		<Size><AbsDimension x="280" y="480"/></Size>
+		<Size><AbsDimension x="500" y="480"/></Size>
 		<Anchors><Anchor point="CENTER"/></Anchors>
 		<Backdrop bgFile="Interface\ChatFrame\ChatFrameBackground" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
 			<BackgroundInsets><AbsInset left="3" right="3" top="3" bottom="3"/></BackgroundInsets>
@@ -70,11 +176,11 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 		<Layers>
 			<Layer level="OVERLAY">
 				<Texture name="MuteClockConfigFrameTopBar" file="Interface\Buttons\WHITE8X8">
-					<Size><AbsDimension x="280" y="28"/></Size>
+					<Size><AbsDimension x="500" y="28"/></Size>
 					<Anchors><Anchor point="TOP"/></Anchors>
 					<TexCoords left="0" right="1" top="0" bottom="1"/>
 				</Texture>
-				<FontString name="MuteClockConfigFrameTitle" inherits="GameFontNormal" text="MuteClock">
+				<FontString name="MuteClockConfigFrameTitle" inherits="GameFontNormal" text="MuteClock v2">
 					<Anchors>
 						<Anchor point="TOP" relativeTo="$parent">
 							<Offset><AbsDimension x="0" y="-9"/></Offset>
@@ -85,47 +191,33 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 		</Layers>
 		<Frames>
 
-			<!-- Tabs — evenly spaced across the width.
-			     Frame inner = 280 - 2*8 margin = 264.
-			     4 tabs * 60 + 3 gaps * 4 = 252px.  Left margin = (264-252)/2 = 6. -->
-			<Button name="$parentBtnTabSettings" inherits="OptionsButtonTemplate" text="Settings">
-				<Size><AbsDimension x="60" y="22"/></Size>
+			<!-- Tabs: Planner | Crafters | Settings (centred) -->
+			<Button name="$parentBtnTabPlanner" inherits="OptionsButtonTemplate" text="Planner">
+				<Size><AbsDimension x="100" y="22"/></Size>
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parent">
-						<Offset><AbsDimension x="6" y="-32"/></Offset>
+						<Offset><AbsDimension x="96" y="-32"/></Offset>
 					</Anchor>
 				</Anchors>
-				<Scripts><OnClick>doShowConfigTab("Settings");</OnClick></Scripts>
+				<Scripts><OnClick>doShowConfigTab("Planner");</OnClick></Scripts>
 			</Button>
-
-			<Button name="$parentBtnTabHistory" inherits="OptionsButtonTemplate" text="History">
-				<Size><AbsDimension x="60" y="22"/></Size>
-				<Anchors>
-					<Anchor point="LEFT" relativeTo="$parentBtnTabSettings" relativePoint="RIGHT">
-						<Offset><AbsDimension x="4" y="0"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Scripts><OnClick>doShowConfigTab("History");</OnClick></Scripts>
-			</Button>
-
 			<Button name="$parentBtnTabCrafters" inherits="OptionsButtonTemplate" text="Crafters">
-				<Size><AbsDimension x="60" y="22"/></Size>
+				<Size><AbsDimension x="100" y="22"/></Size>
 				<Anchors>
-					<Anchor point="LEFT" relativeTo="$parentBtnTabHistory" relativePoint="RIGHT">
+					<Anchor point="LEFT" relativeTo="$parentBtnTabPlanner" relativePoint="RIGHT">
 						<Offset><AbsDimension x="4" y="0"/></Offset>
 					</Anchor>
 				</Anchors>
 				<Scripts><OnClick>doShowConfigTab("Crafters");</OnClick></Scripts>
 			</Button>
-
-			<Button name="$parentBtnTabNearby" inherits="OptionsButtonTemplate" text="Nearby">
-				<Size><AbsDimension x="60" y="22"/></Size>
+			<Button name="$parentBtnTabSettings" inherits="OptionsButtonTemplate" text="Settings">
+				<Size><AbsDimension x="100" y="22"/></Size>
 				<Anchors>
 					<Anchor point="LEFT" relativeTo="$parentBtnTabCrafters" relativePoint="RIGHT">
 						<Offset><AbsDimension x="4" y="0"/></Offset>
 					</Anchor>
 				</Anchors>
-				<Scripts><OnClick>doShowConfigTab("Nearby");</OnClick></Scripts>
+				<Scripts><OnClick>doShowConfigTab("Settings");</OnClick></Scripts>
 			</Button>
 
 			<!-- Close button -->
@@ -139,12 +231,164 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 			</Button>
 
 			<!-- ============================================================
-			     SETTINGS PANEL
-			     x=8  y=-56   264 x 424
-			     Reset Defaults lives here so it vanishes on other tabs.
+			     PLANNER PANEL  (default tab)
+			     Full-width scroll. Shows all cooldowns sorted by remaining.
 			     ============================================================ -->
-			<Frame name="$parentPanelSettings">
-				<Size><AbsDimension x="264" y="424"/></Size>
+			<Frame name="$parentPanelPlanner">
+				<Size><AbsDimension x="484" y="424"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent">
+						<Offset><AbsDimension x="8" y="-56"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Frames>
+					<ScrollFrame name="$parentScrollFrame">
+						<Size><AbsDimension x="462" y="416"/></Size>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parent">
+								<Offset><AbsDimension x="0" y="0"/></Offset>
+							</Anchor>
+						</Anchors>
+						<ScrollChild>
+							<Frame name="$parentContent">
+								<Size><AbsDimension x="462" y="1"/></Size>
+							</Frame>
+						</ScrollChild>
+					</ScrollFrame>
+					<Slider name="$parentScrollBar" inherits="UIPanelScrollBarTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentScrollFrame" relativePoint="TOPRIGHT">
+								<Offset><AbsDimension x="2" y="-16"/></Offset>
+							</Anchor>
+							<Anchor point="BOTTOMLEFT" relativeTo="$parentScrollFrame" relativePoint="BOTTOMRIGHT">
+								<Offset><AbsDimension x="2" y="16"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnValueChanged>
+								MuteClockConfigFramePanelPlannerScrollFrame:SetVerticalScroll(this:GetValue());
+							</OnValueChanged>
+						</Scripts>
+					</Slider>
+				</Frames>
+			</Frame>
+
+			<!-- ============================================================
+			     CRAFTERS PANEL  (two-column, unchanged from v1)
+			     ============================================================ -->
+			<Frame name="$parentPanelCrafters" hidden="true">
+				<Size><AbsDimension x="484" y="424"/></Size>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent">
+						<Offset><AbsDimension x="8" y="-56"/></Offset>
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="OVERLAY">
+						<FontString inherits="GameFontNormalSmall" text="SAVED CRAFTERS" justifyH="LEFT">
+							<Color r="0.35" g="0.75" b="1"/>
+							<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="0" y="0"/></Offset></Anchor></Anchors>
+						</FontString>
+						<FontString inherits="GameFontNormalSmall" text="DETECTED USERS" justifyH="LEFT">
+							<Color r="0.35" g="0.75" b="1"/>
+							<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="237" y="0"/></Offset></Anchor></Anchors>
+						</FontString>
+						<Texture name="MuteClockCraftersDivider" file="Interface\Buttons\WHITE8X8">
+							<Size><AbsDimension x="1" y="408"/></Size>
+							<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="232" y="-16"/></Offset></Anchor></Anchors>
+							<TexCoords left="0" right="1" top="0" bottom="1"/>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Frames>
+					<ScrollFrame name="$parentLeftScrollFrame">
+						<Size><AbsDimension x="206" y="408"/></Size>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parent">
+								<Offset><AbsDimension x="0" y="-16"/></Offset>
+							</Anchor>
+						</Anchors>
+						<ScrollChild>
+							<Frame name="$parentContent">
+								<Size><AbsDimension x="206" y="1"/></Size>
+							</Frame>
+						</ScrollChild>
+					</ScrollFrame>
+					<Slider name="$parentLeftScrollBar" inherits="UIPanelScrollBarTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentLeftScrollFrame" relativePoint="TOPRIGHT">
+								<Offset><AbsDimension x="2" y="-16"/></Offset>
+							</Anchor>
+							<Anchor point="BOTTOMLEFT" relativeTo="$parentLeftScrollFrame" relativePoint="BOTTOMRIGHT">
+								<Offset><AbsDimension x="2" y="16"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnValueChanged>
+								MuteClockConfigFramePanelCraftersLeftScrollFrame:SetVerticalScroll(this:GetValue());
+							</OnValueChanged>
+						</Scripts>
+					</Slider>
+					<ScrollFrame name="$parentRightScrollFrame">
+						<Size><AbsDimension x="206" y="408"/></Size>
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parent">
+								<Offset><AbsDimension x="237" y="-16"/></Offset>
+							</Anchor>
+						</Anchors>
+						<ScrollChild>
+							<Frame name="$parentContent">
+								<Size><AbsDimension x="206" y="1"/></Size>
+							</Frame>
+						</ScrollChild>
+					</ScrollFrame>
+					<Slider name="$parentRightScrollBar" inherits="UIPanelScrollBarTemplate">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativeTo="$parentRightScrollFrame" relativePoint="TOPRIGHT">
+								<Offset><AbsDimension x="2" y="-16"/></Offset>
+							</Anchor>
+							<Anchor point="BOTTOMLEFT" relativeTo="$parentRightScrollFrame" relativePoint="BOTTOMRIGHT">
+								<Offset><AbsDimension x="2" y="16"/></Offset>
+							</Anchor>
+						</Anchors>
+						<Scripts>
+							<OnValueChanged>
+								MuteClockConfigFramePanelCraftersRightScrollFrame:SetVerticalScroll(this:GetValue());
+							</OnValueChanged>
+						</Scripts>
+					</Slider>
+				</Frames>
+			</Frame>
+
+			<!-- ============================================================
+			     SETTINGS PANEL  (full-width 484px)
+
+			     TRACKING  y=0
+			       CBAllChars  y=-20
+
+			     DISPLAY   y=-52
+			       Left col: CBGroupByCraft y=-72, CBReadyTime y=-104, CBOverdue y=-136
+			       Right col: CBLastCrafted y=-72, CBTooltipMode y=-104
+
+			     NOTIFICATIONS  y=-168
+			       CBNotify         y=-188
+			       Remind label+dd  y=-220
+
+			     INDICATOR  y=-256
+			       SliderSize           y=-278
+			       Display mode label+dd y=-326
+			       Icon mode label+dd    y=-358
+			       CBBadge              y=-396
+			       CBHide               y=-428  <- this is tight, fits in 424 from panel top
+			                                       (panel top = y=-56 from config, so -56-428=-484, ok)
+			       BtnDefaults          y=-470  <- OVERFLOW: need to split
+
+			     Solution: put CBHide + BtnDefaults in right column of INDICATOR
+			       Left col: SliderSize (full), then DropDownDisplay, DropDownIcon, CBBadge
+			       Right col offset x=242: CBHide, BtnDefaults
+			     ============================================================ -->
+			<Frame name="$parentPanelSettings" hidden="true">
+				<Size><AbsDimension x="484" y="424"/></Size>
 				<Anchors>
 					<Anchor point="TOPLEFT" relativeTo="$parent">
 						<Offset><AbsDimension x="8" y="-56"/></Offset>
@@ -152,36 +396,24 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 				</Anchors>
 				<Frames>
 
-					<!-- ─── TRACKING ───────────────── y=0 ─── -->
+					<!-- ─── TRACKING ─── y=0 -->
 					<Frame name="$parentDivTracking">
-						<Size><AbsDimension x="264" y="14"/></Size>
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parent">
-								<Offset><AbsDimension x="0" y="0"/></Offset>
-							</Anchor>
-						</Anchors>
-						<Layers>
-							<Layer level="OVERLAY">
-								<FontString inherits="GameFontNormalSmall" text="TRACKING" justifyH="LEFT">
-									<Color r="0.35" g="0.75" b="1"/>
-									<Anchors><Anchor point="LEFT"/></Anchors>
-								</FontString>
-								<Texture name="MuteClockDivTracking" file="Interface\Buttons\WHITE8X8">
-									<Size><AbsDimension x="196" y="1"/></Size>
-									<Anchors><Anchor point="RIGHT"/></Anchors>
-									<TexCoords left="0" right="1" top="0" bottom="1"/>
-								</Texture>
-							</Layer>
-						</Layers>
+						<Size><AbsDimension x="484" y="14"/></Size>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parent"><Offset><AbsDimension x="0" y="0"/></Offset></Anchor></Anchors>
+						<Layers><Layer level="OVERLAY">
+							<FontString inherits="GameFontNormalSmall" text="TRACKING" justifyH="LEFT">
+								<Color r="0.35" g="0.75" b="1"/><Anchors><Anchor point="LEFT"/></Anchors>
+							</FontString>
+							<Texture name="MuteClockDivTracking" file="Interface\Buttons\WHITE8X8">
+								<Size><AbsDimension x="416" y="1"/></Size><Anchors><Anchor point="RIGHT"/></Anchors>
+								<TexCoords left="0" right="1" top="0" bottom="1"/>
+							</Texture>
+						</Layer></Layers>
 					</Frame>
 
-					<!-- CBAllChars  y=-20 -->
+					<!-- CBAllChars y=-20 (full width, single col) -->
 					<CheckButton name="$parentCBAllChars" inherits="OptionsCheckButtonTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentDivTracking">
-								<Offset><AbsDimension x="0" y="-20"/></Offset>
-							</Anchor>
-						</Anchors>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentDivTracking"><Offset><AbsDimension x="0" y="-20"/></Offset></Anchor></Anchors>
 						<Scripts>
 							<OnLoad>getglobal(this:GetName().."Text"):SetText("Track all characters");</OnLoad>
 							<OnClick>doConfigSave();</OnClick>
@@ -190,66 +422,35 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Scripts>
 					</CheckButton>
 
-					<!-- CBNotify  y=-52 -->
-					<CheckButton name="$parentCBNotify" inherits="OptionsCheckButtonTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentCBAllChars">
-								<Offset><AbsDimension x="0" y="-32"/></Offset>
-							</Anchor>
-						</Anchors>
-						<Scripts>
-							<OnLoad>getglobal(this:GetName().."Text"):SetText("Chat alert on expiry");</OnLoad>
-							<OnClick>doConfigSave();</OnClick>
-							<OnEnter>ConfigTooltip_Show("Posts a chat message and plays a sound", "when a cooldown becomes ready.");</OnEnter>
-							<OnLeave>ConfigTooltip_Hide();</OnLeave>
-						</Scripts>
-					</CheckButton>
-
-					<!-- ─── DISPLAY ────────────────── y=-84 ─── -->
+					<!-- ─── DISPLAY ─── y=-52 -->
 					<Frame name="$parentDivDisplay">
-						<Size><AbsDimension x="264" y="14"/></Size>
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentCBNotify">
-								<Offset><AbsDimension x="0" y="-32"/></Offset>
-							</Anchor>
-						</Anchors>
-						<Layers>
-							<Layer level="OVERLAY">
-								<FontString inherits="GameFontNormalSmall" text="DISPLAY" justifyH="LEFT">
-									<Color r="0.35" g="0.75" b="1"/>
-									<Anchors><Anchor point="LEFT"/></Anchors>
-								</FontString>
-								<Texture name="MuteClockDivDisplay" file="Interface\Buttons\WHITE8X8">
-									<Size><AbsDimension x="204" y="1"/></Size>
-									<Anchors><Anchor point="RIGHT"/></Anchors>
-									<TexCoords left="0" right="1" top="0" bottom="1"/>
-								</Texture>
-							</Layer>
-						</Layers>
+						<Size><AbsDimension x="484" y="14"/></Size>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentCBAllChars"><Offset><AbsDimension x="0" y="-32"/></Offset></Anchor></Anchors>
+						<Layers><Layer level="OVERLAY">
+							<FontString inherits="GameFontNormalSmall" text="DISPLAY" justifyH="LEFT">
+								<Color r="0.35" g="0.75" b="1"/><Anchors><Anchor point="LEFT"/></Anchors>
+							</FontString>
+							<Texture name="MuteClockDivDisplay" file="Interface\Buttons\WHITE8X8">
+								<Size><AbsDimension x="424" y="1"/></Size><Anchors><Anchor point="RIGHT"/></Anchors>
+								<TexCoords left="0" right="1" top="0" bottom="1"/>
+							</Texture>
+						</Layer></Layers>
 					</Frame>
 
-					<!-- CBGroupByCraft  y=-104 -->
+					<!-- Left col: CBGroupByCraft y=-72 -->
 					<CheckButton name="$parentCBGroupByCraft" inherits="OptionsCheckButtonTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentDivDisplay">
-								<Offset><AbsDimension x="0" y="-20"/></Offset>
-							</Anchor>
-						</Anchors>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentDivDisplay"><Offset><AbsDimension x="0" y="-20"/></Offset></Anchor></Anchors>
 						<Scripts>
 							<OnLoad>getglobal(this:GetName().."Text"):SetText("Group by craft type");</OnLoad>
 							<OnClick>doConfigSave();</OnClick>
-							<OnEnter>ConfigTooltip_Show("Groups the tooltip and Crafters panel", "by craft type instead of by character.");</OnEnter>
+							<OnEnter>ConfigTooltip_Show("Groups tooltip and Crafters panel", "by craft type instead of by character.");</OnEnter>
 							<OnLeave>ConfigTooltip_Hide();</OnLeave>
 						</Scripts>
 					</CheckButton>
 
-					<!-- CBReadyTime  y=-136 -->
+					<!-- Left col: CBReadyTime y=-104 -->
 					<CheckButton name="$parentCBReadyTime" inherits="OptionsCheckButtonTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentCBGroupByCraft">
-								<Offset><AbsDimension x="0" y="-32"/></Offset>
-							</Anchor>
-						</Anchors>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentCBGroupByCraft"><Offset><AbsDimension x="0" y="-32"/></Offset></Anchor></Anchors>
 						<Scripts>
 							<OnLoad>getglobal(this:GetName().."Text"):SetText("Show ready time");</OnLoad>
 							<OnClick>doConfigSave();</OnClick>
@@ -258,28 +459,20 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Scripts>
 					</CheckButton>
 
-					<!-- CBOverdue  y=-168 -->
+					<!-- Left col: CBOverdue y=-136 -->
 					<CheckButton name="$parentCBOverdue" inherits="OptionsCheckButtonTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentCBReadyTime">
-								<Offset><AbsDimension x="0" y="-32"/></Offset>
-							</Anchor>
-						</Anchors>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentCBReadyTime"><Offset><AbsDimension x="0" y="-32"/></Offset></Anchor></Anchors>
 						<Scripts>
 							<OnLoad>getglobal(this:GetName().."Text"):SetText("Show overdue time");</OnLoad>
 							<OnClick>doConfigSave();</OnClick>
-							<OnEnter>ConfigTooltip_Show("Shows how long a ready craft", "has been waiting. E.g. +2h 15m");</OnEnter>
+							<OnEnter>ConfigTooltip_Show("Shows how long a ready craft has been", "waiting. E.g. +2h 15m");</OnEnter>
 							<OnLeave>ConfigTooltip_Hide();</OnLeave>
 						</Scripts>
 					</CheckButton>
 
-					<!-- CBLastCrafted  y=-200 -->
+					<!-- Right col: CBLastCrafted x=242, y=-72 -->
 					<CheckButton name="$parentCBLastCrafted" inherits="OptionsCheckButtonTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentCBOverdue">
-								<Offset><AbsDimension x="0" y="-32"/></Offset>
-							</Anchor>
-						</Anchors>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentDivDisplay"><Offset><AbsDimension x="242" y="-20"/></Offset></Anchor></Anchors>
 						<Scripts>
 							<OnLoad>getglobal(this:GetName().."Text"):SetText("Show last crafted time");</OnLoad>
 							<OnClick>doConfigSave();</OnClick>
@@ -288,37 +481,78 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 						</Scripts>
 					</CheckButton>
 
-					<!-- ─── INDICATOR ──────────────── y=-232 ─── -->
-					<Frame name="$parentDivDot">
-						<Size><AbsDimension x="264" y="14"/></Size>
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentCBLastCrafted">
-								<Offset><AbsDimension x="0" y="-32"/></Offset>
-							</Anchor>
-						</Anchors>
-						<Layers>
-							<Layer level="OVERLAY">
-								<FontString inherits="GameFontNormalSmall" text="INDICATOR" justifyH="LEFT">
-									<Color r="0.35" g="0.75" b="1"/>
-									<Anchors><Anchor point="LEFT"/></Anchors>
-								</FontString>
-								<Texture name="MuteClockDivDot" file="Interface\Buttons\WHITE8X8">
-									<Size><AbsDimension x="190" y="1"/></Size>
-									<Anchors><Anchor point="RIGHT"/></Anchors>
-									<TexCoords left="0" right="1" top="0" bottom="1"/>
-								</Texture>
-							</Layer>
-						</Layers>
+					<!-- Right col: CBTooltipMode x=242, y=-104 -->
+					<CheckButton name="$parentCBTooltipMode" inherits="OptionsCheckButtonTemplate">
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentCBLastCrafted"><Offset><AbsDimension x="0" y="-32"/></Offset></Anchor></Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Tooltip shows Crafters");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Mouseover shows saved Crafters", "instead of your own cooldowns.", "Shift+click icon to toggle quickly.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+					<!-- ─── NOTIFICATIONS ─── y=-168 (anchored below CBOverdue left col) -->
+					<Frame name="$parentDivNotify">
+						<Size><AbsDimension x="484" y="14"/></Size>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentCBOverdue"><Offset><AbsDimension x="0" y="-32"/></Offset></Anchor></Anchors>
+						<Layers><Layer level="OVERLAY">
+							<FontString inherits="GameFontNormalSmall" text="NOTIFICATIONS" justifyH="LEFT">
+								<Color r="0.35" g="0.75" b="1"/><Anchors><Anchor point="LEFT"/></Anchors>
+							</FontString>
+							<Texture name="MuteClockDivNotify" file="Interface\Buttons\WHITE8X8">
+								<Size><AbsDimension x="394" y="1"/></Size><Anchors><Anchor point="RIGHT"/></Anchors>
+								<TexCoords left="0" right="1" top="0" bottom="1"/>
+							</Texture>
+						</Layer></Layers>
 					</Frame>
 
-					<!-- SliderSize  y=-254 -->
+					<!-- CBNotify y=-188 -->
+					<CheckButton name="$parentCBNotify" inherits="OptionsCheckButtonTemplate">
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentDivNotify"><Offset><AbsDimension x="0" y="-20"/></Offset></Anchor></Anchors>
+						<Scripts>
+							<OnLoad>getglobal(this:GetName().."Text"):SetText("Chat alert on expiry");</OnLoad>
+							<OnClick>doConfigSave();</OnClick>
+							<OnEnter>ConfigTooltip_Show("Posts a chat message and plays a sound", "when a cooldown becomes ready.");</OnEnter>
+							<OnLeave>ConfigTooltip_Hide();</OnLeave>
+						</Scripts>
+					</CheckButton>
+
+					<!-- Overdue remind label y=-220 -->
+					<Frame name="$parentRemindLabel">
+						<Size><AbsDimension x="200" y="14"/></Size>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentCBNotify"><Offset><AbsDimension x="0" y="-32"/></Offset></Anchor></Anchors>
+						<Layers><Layer level="OVERLAY">
+							<FontString inherits="GameFontNormalSmall" text="Overdue reminder" justifyH="LEFT">
+								<Color r="0.82" g="0.82" b="0.82"/><Anchors><Anchor point="LEFT"/></Anchors>
+							</FontString>
+						</Layer></Layers>
+					</Frame>
+
+					<!-- Overdue remind dropdown y=-220 (right of label) -->
+					<Frame name="$parentDropDownRemind" inherits="UIDropDownMenuTemplate">
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentRemindLabel"><Offset><AbsDimension x="120" y="-4"/></Offset></Anchor></Anchors>
+					</Frame>
+
+					<!-- ─── INDICATOR ─── y=-256 -->
+					<Frame name="$parentDivDot">
+						<Size><AbsDimension x="484" y="14"/></Size>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentRemindLabel"><Offset><AbsDimension x="0" y="-36"/></Offset></Anchor></Anchors>
+						<Layers><Layer level="OVERLAY">
+							<FontString inherits="GameFontNormalSmall" text="INDICATOR" justifyH="LEFT">
+								<Color r="0.35" g="0.75" b="1"/><Anchors><Anchor point="LEFT"/></Anchors>
+							</FontString>
+							<Texture name="MuteClockDivDot" file="Interface\Buttons\WHITE8X8">
+								<Size><AbsDimension x="420" y="1"/></Size><Anchors><Anchor point="RIGHT"/></Anchors>
+								<TexCoords left="0" right="1" top="0" bottom="1"/>
+							</Texture>
+						</Layer></Layers>
+					</Frame>
+
+					<!-- SliderSize y=-278 (full width) -->
 					<Slider name="$parentSliderSize" inherits="OptionsSliderTemplate">
-						<Size><AbsDimension x="234" y="16"/></Size>
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentDivDot">
-								<Offset><AbsDimension x="8" y="-22"/></Offset>
-							</Anchor>
-						</Anchors>
+						<Size><AbsDimension x="460" y="16"/></Size>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentDivDot"><Offset><AbsDimension x="8" y="-22"/></Offset></Anchor></Anchors>
 						<Scripts>
 							<OnLoad>
 								getglobal(this:GetName().."Text"):SetText("Dot Size (16px)");
@@ -328,204 +562,79 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 								this:SetValueStep(1);
 							</OnLoad>
 							<OnValueChanged>doConfigSave();</OnValueChanged>
-							<OnEnter>ConfigTooltip_Show("Size of the indicator dot in pixels.");</OnEnter>
+							<OnEnter>ConfigTooltip_Show("Size of the indicator in pixels.", "(Dot mode only)");</OnEnter>
 							<OnLeave>ConfigTooltip_Hide();</OnLeave>
 						</Scripts>
 					</Slider>
 
-					<!-- CBSmartIcon  y=-298 -->
-					<CheckButton name="$parentCBSmartIcon" inherits="OptionsCheckButtonTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentSliderSize">
-								<Offset><AbsDimension x="-8" y="-44"/></Offset>
-							</Anchor>
-						</Anchors>
-						<Scripts>
-							<OnLoad>getglobal(this:GetName().."Text"):SetText("SmartIcon");</OnLoad>
-							<OnClick>doConfigSave();</OnClick>
-							<OnEnter>ConfigTooltip_Show("Shows the craft icon instead of the dot", "when a cooldown is ready.");</OnEnter>
-							<OnLeave>ConfigTooltip_Hide();</OnLeave>
-						</Scripts>
-					</CheckButton>
+					<!-- Display mode label y=-316 -->
+					<Frame name="$parentDisplayLabel">
+						<Size><AbsDimension x="200" y="14"/></Size>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentSliderSize"><Offset><AbsDimension x="-8" y="-24"/></Offset></Anchor></Anchors>
+						<Layers><Layer level="OVERLAY">
+							<FontString inherits="GameFontNormalSmall" text="Display mode" justifyH="LEFT">
+								<Color r="0.82" g="0.82" b="0.82"/><Anchors><Anchor point="LEFT"/></Anchors>
+							</FontString>
+						</Layer></Layers>
+					</Frame>
 
-					<!-- CBBadge  y=-330 -->
+					<!-- Display mode dropdown y=-316 -->
+					<Frame name="$parentDropDownDisplay" inherits="UIDropDownMenuTemplate">
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentDisplayLabel"><Offset><AbsDimension x="95" y="-4"/></Offset></Anchor></Anchors>
+					</Frame>
+
+					<!-- Icon mode label y=-352 (below display dropdown) -->
+					<Frame name="$parentIconModeLabel">
+						<Size><AbsDimension x="200" y="14"/></Size>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentDisplayLabel"><Offset><AbsDimension x="0" y="-36"/></Offset></Anchor></Anchors>
+						<Layers><Layer level="OVERLAY">
+							<FontString inherits="GameFontNormalSmall" text="Icon mode" justifyH="LEFT">
+								<Color r="0.82" g="0.82" b="0.82"/><Anchors><Anchor point="LEFT"/></Anchors>
+							</FontString>
+						</Layer></Layers>
+					</Frame>
+
+					<!-- Icon mode dropdown y=-352 -->
+					<Frame name="$parentDropDownIcon" inherits="UIDropDownMenuTemplate">
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentIconModeLabel"><Offset><AbsDimension x="70" y="-4"/></Offset></Anchor></Anchors>
+					</Frame>
+
+					<!-- CBBadge y=-388 -->
 					<CheckButton name="$parentCBBadge" inherits="OptionsCheckButtonTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentCBSmartIcon">
-								<Offset><AbsDimension x="0" y="-32"/></Offset>
-							</Anchor>
-						</Anchors>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentIconModeLabel"><Offset><AbsDimension x="0" y="-36"/></Offset></Anchor></Anchors>
 						<Scripts>
 							<OnLoad>getglobal(this:GetName().."Text"):SetText("Ready count badge");</OnLoad>
 							<OnClick>doConfigSave();</OnClick>
-							<OnEnter>ConfigTooltip_Show("Shows a number on the icon", "for how many crafts are ready.");</OnEnter>
+							<OnEnter>ConfigTooltip_Show("Shows a count on the indicator.", "Gold = own, cyan tint = crafters.");</OnEnter>
 							<OnLeave>ConfigTooltip_Hide();</OnLeave>
 						</Scripts>
 					</CheckButton>
 
-					<!-- CBHide  y=-362 -->
+					<!-- Right side of lower INDICATOR: CBHide x=242, aligned with CBBadge -->
 					<CheckButton name="$parentCBHide" inherits="OptionsCheckButtonTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentCBBadge">
-								<Offset><AbsDimension x="0" y="-32"/></Offset>
-							</Anchor>
-						</Anchors>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentIconModeLabel"><Offset><AbsDimension x="242" y="-36"/></Offset></Anchor></Anchors>
 						<Scripts>
 							<OnLoad>getglobal(this:GetName().."Text"):SetText("Hide indicator");</OnLoad>
 							<OnClick>doConfigSave();</OnClick>
-							<OnEnter>ConfigTooltip_Show("Hides the dot entirely.", "Use /muteclock show to restore it.");</OnEnter>
+							<OnEnter>ConfigTooltip_Show("Hides the indicator entirely.", "Use /muteclock show to restore.");</OnEnter>
 							<OnLeave>ConfigTooltip_Hide();</OnLeave>
 						</Scripts>
 					</CheckButton>
 
-					<!-- Reset Defaults  y=-404
-					     Placed inside PanelSettings so it only shows on the Settings tab. -->
+					<!-- Reset Defaults (below CBBadge) -->
 					<Button name="$parentBtnDefaults" inherits="OptionsButtonTemplate" text="Reset Defaults">
 						<Size><AbsDimension x="110" y="22"/></Size>
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentCBHide">
-								<Offset><AbsDimension x="0" y="-42"/></Offset>
-							</Anchor>
-						</Anchors>
-						<Scripts>
-							<OnClick>doSetDefaultSettings();</OnClick>
-						</Scripts>
+						<Anchors><Anchor point="TOPLEFT" relativeTo="$parentCBBadge"><Offset><AbsDimension x="0" y="-42"/></Offset></Anchor></Anchors>
+						<Scripts><OnClick>doSetDefaultSettings();</OnClick></Scripts>
 					</Button>
 
-				</Frames>
-			</Frame>
-
-			<!-- ============================================================
-			     HISTORY PANEL
-			     Full-height scroll area: 264 x 424
-			     ============================================================ -->
-			<Frame name="$parentPanelHistory" hidden="true">
-				<Size><AbsDimension x="264" y="424"/></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parent">
-						<Offset><AbsDimension x="8" y="-56"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Frames>
-					<ScrollFrame name="$parentScrollFrame">
-						<Size><AbsDimension x="242" y="416"/></Size>
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parent">
-								<Offset><AbsDimension x="0" y="0"/></Offset>
-							</Anchor>
-						</Anchors>
-						<ScrollChild>
-							<Frame name="$parentContent">
-								<Size><AbsDimension x="242" y="1"/></Size>
-							</Frame>
-						</ScrollChild>
-					</ScrollFrame>
-					<Slider name="$parentScrollBar" inherits="UIPanelScrollBarTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentScrollFrame" relativePoint="TOPRIGHT">
-								<Offset><AbsDimension x="2" y="-16"/></Offset>
-							</Anchor>
-							<Anchor point="BOTTOMLEFT" relativeTo="$parentScrollFrame" relativePoint="BOTTOMRIGHT">
-								<Offset><AbsDimension x="2" y="16"/></Offset>
-							</Anchor>
-						</Anchors>
-						<Scripts>
-							<OnValueChanged>
-								MuteClockConfigFramePanelHistoryScrollFrame:SetVerticalScroll(this:GetValue());
-							</OnValueChanged>
-						</Scripts>
-					</Slider>
-				</Frames>
-			</Frame>
-
-			<!-- ============================================================
-			     CRAFTERS PANEL
-			     ============================================================ -->
-			<Frame name="$parentPanelCrafters" hidden="true">
-				<Size><AbsDimension x="264" y="424"/></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parent">
-						<Offset><AbsDimension x="8" y="-56"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Frames>
-					<ScrollFrame name="$parentScrollFrame">
-						<Size><AbsDimension x="242" y="416"/></Size>
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parent">
-								<Offset><AbsDimension x="0" y="0"/></Offset>
-							</Anchor>
-						</Anchors>
-						<ScrollChild>
-							<Frame name="$parentContent">
-								<Size><AbsDimension x="242" y="1"/></Size>
-							</Frame>
-						</ScrollChild>
-					</ScrollFrame>
-					<Slider name="$parentScrollBar" inherits="UIPanelScrollBarTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentScrollFrame" relativePoint="TOPRIGHT">
-								<Offset><AbsDimension x="2" y="-16"/></Offset>
-							</Anchor>
-							<Anchor point="BOTTOMLEFT" relativeTo="$parentScrollFrame" relativePoint="BOTTOMRIGHT">
-								<Offset><AbsDimension x="2" y="16"/></Offset>
-							</Anchor>
-						</Anchors>
-						<Scripts>
-							<OnValueChanged>
-								MuteClockConfigFramePanelCraftersScrollFrame:SetVerticalScroll(this:GetValue());
-							</OnValueChanged>
-						</Scripts>
-					</Slider>
-				</Frames>
-			</Frame>
-
-			<!-- ============================================================
-			     NEARBY PANEL
-			     ============================================================ -->
-			<Frame name="$parentPanelNearby" hidden="true">
-				<Size><AbsDimension x="264" y="424"/></Size>
-				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parent">
-						<Offset><AbsDimension x="8" y="-56"/></Offset>
-					</Anchor>
-				</Anchors>
-				<Frames>
-					<ScrollFrame name="$parentScrollFrame">
-						<Size><AbsDimension x="242" y="416"/></Size>
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parent">
-								<Offset><AbsDimension x="0" y="0"/></Offset>
-							</Anchor>
-						</Anchors>
-						<ScrollChild>
-							<Frame name="$parentContent">
-								<Size><AbsDimension x="242" y="1"/></Size>
-							</Frame>
-						</ScrollChild>
-					</ScrollFrame>
-					<Slider name="$parentScrollBar" inherits="UIPanelScrollBarTemplate">
-						<Anchors>
-							<Anchor point="TOPLEFT" relativeTo="$parentScrollFrame" relativePoint="TOPRIGHT">
-								<Offset><AbsDimension x="2" y="-16"/></Offset>
-							</Anchor>
-							<Anchor point="BOTTOMLEFT" relativeTo="$parentScrollFrame" relativePoint="BOTTOMRIGHT">
-								<Offset><AbsDimension x="2" y="16"/></Offset>
-							</Anchor>
-						</Anchors>
-						<Scripts>
-							<OnValueChanged>
-								MuteClockConfigFramePanelNearbyScrollFrame:SetVerticalScroll(this:GetValue());
-							</OnValueChanged>
-						</Scripts>
-					</Slider>
 				</Frames>
 			</Frame>
 
 		</Frames>
 		<Scripts>
 			<OnLoad>MuteClockConfig_OnLoad();</OnLoad>
-			<OnShow>doInitializeConfig(0);</OnShow>
+			<OnShow>MuteClockConfig_OnShow();</OnShow>
 			<OnDragStart>this:StartMoving();</OnDragStart>
 			<OnDragStop>this:StopMovingOrSizing();</OnDragStop>
 		</Scripts>

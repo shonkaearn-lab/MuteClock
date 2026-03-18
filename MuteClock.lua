@@ -1,41 +1,48 @@
--- MuteClock - Cooldown Tracker for TurtleWoW / Vanilla 1.12
+-- MuteClock v2 - Cooldown Tracker for TurtleWoW / Vanilla 1.12
 
 -- -------------------------------------------------------
 -- Defaults
 -- -------------------------------------------------------
-DEF_SH_ALL_CHARACTERS = 1;
-DEF_DO_NOTIFY         = 1;
-DEF_POSITION_X        = nil;
-DEF_POSITION_Y        = nil;
-DEF_DOT_SIZE          = 16;
-DEF_DOT_HIDDEN        = 0;
-DEF_SMART_ICON        = 1;
-DEF_GROUP_BY_CRAFT    = 0;
-DEF_SHOW_READY_TIME   = 0;
-DEF_SHOW_OVERDUE      = 1;
-DEF_SHOW_LAST_CRAFTED = 0;
-DEF_SHOW_BADGE        = 0;
+DEF_SH_ALL_CHARACTERS  = 1;
+DEF_DO_NOTIFY          = 1;
+DEF_POSITION_X         = nil;
+DEF_POSITION_Y         = nil;
+DEF_DOT_SIZE           = 16;
+DEF_DOT_HIDDEN         = 0;
+DEF_DISPLAY_MODE       = 0;   -- 0=dot, 1=bar, 2=mini-panel
+DEF_ICON_MODE          = 1;   -- 0=dot only, 1=smart, 2=arcanite, 3=mooncloth, 4=cure rugged hide
+DEF_GROUP_BY_CRAFT     = 0;
+DEF_SHOW_READY_TIME    = 0;
+DEF_SHOW_OVERDUE       = 1;
+DEF_SHOW_LAST_CRAFTED  = 0;
+DEF_SHOW_BADGE         = 0;
+DEF_TOOLTIP_MODE       = 0;   -- 0=My Cooldowns, 1=Crafters
+DEF_OVERDUE_REMIND     = 0;   -- hours between overdue reminders (0=off)
 
 -- -------------------------------------------------------
 -- Runtime globals
 -- -------------------------------------------------------
-CURRENT_PLAYER_NAME  = "";
-SH_ALL_CHARACTERS    = DEF_SH_ALL_CHARACTERS;
-DO_NOTIFY            = DEF_DO_NOTIFY;
-POSITION_X           = DEF_POSITION_X;
-POSITION_Y           = DEF_POSITION_Y;
-DOT_SIZE             = DEF_DOT_SIZE;
-DOT_HIDDEN           = DEF_DOT_HIDDEN;
-SMART_ICON           = DEF_SMART_ICON;
-GROUP_BY_CRAFT       = DEF_GROUP_BY_CRAFT;
-SHOW_READY_TIME      = DEF_SHOW_READY_TIME;
-SHOW_OVERDUE         = DEF_SHOW_OVERDUE;
-SHOW_LAST_CRAFTED    = DEF_SHOW_LAST_CRAFTED;
-SHOW_BADGE           = DEF_SHOW_BADGE;
+CURRENT_PLAYER_NAME   = "";
+SH_ALL_CHARACTERS     = DEF_SH_ALL_CHARACTERS;
+DO_NOTIFY             = DEF_DO_NOTIFY;
+POSITION_X            = DEF_POSITION_X;
+POSITION_Y            = DEF_POSITION_Y;
+DOT_SIZE              = DEF_DOT_SIZE;
+DOT_HIDDEN            = DEF_DOT_HIDDEN;
+DISPLAY_MODE          = DEF_DISPLAY_MODE;
+ICON_MODE             = DEF_ICON_MODE;
+GROUP_BY_CRAFT        = DEF_GROUP_BY_CRAFT;
+SHOW_READY_TIME       = DEF_SHOW_READY_TIME;
+SHOW_OVERDUE          = DEF_SHOW_OVERDUE;
+SHOW_LAST_CRAFTED     = DEF_SHOW_LAST_CRAFTED;
+SHOW_BADGE            = DEF_SHOW_BADGE;
+TOOLTIP_MODE          = DEF_TOOLTIP_MODE;
+OVERDUE_REMIND        = DEF_OVERDUE_REMIND;
 
-IS_VARIABLES_LOADED  = 0;
-CraftingItemName     = nil;
-isCraftSuccess       = 0;
+IS_VARIABLES_LOADED   = 0;
+CraftingItemName      = nil;
+isCraftSuccess        = 0;
+MC_SESSION_NOTIFIED   = {};   -- { "charName:craftKey" = true } reset each session
 
 HISTORY_MAX  = 20;
 MC_PEERS     = {};
@@ -46,9 +53,31 @@ MC_NEARBY    = {};
 -- Tracked crafts
 -- -------------------------------------------------------
 TRACKED_CRAFTS = {
-	{ key = "Transmute: Arcanite", label = "Transmute: Arcanite", icon = "Interface\\Icons\\INV_Misc_Stonetablet_05"   },
-	{ key = "Mooncloth",           label = "Mooncloth",            icon = "Interface\\Icons\\INV_Fabric_Moonrag_01"    },
-	{ key = "Cure Rugged Hide",    label = "Cure Rugged Hide",     icon = "Interface\\Icons\\INV_Misc_LeatherScrap_02" },
+	{ key = "Transmute: Arcanite", label = "Arcanite",   short = "Arc", icon = "Interface\\Icons\\INV_Misc_Stonetablet_05"   },
+	{ key = "Mooncloth",           label = "Mooncloth",  short = "Moo", icon = "Interface\\Icons\\INV_Fabric_Moonrag_01"    },
+	{ key = "Cure Rugged Hide",    label = "Rugged Hide",short = "Cur", icon = "Interface\\Icons\\INV_Misc_LeatherScrap_02" },
+};
+
+ICON_MODE_OPTIONS = {
+	{ value = 0, text = "Dot only"         },
+	{ value = 1, text = "Smart (auto)"     },
+	{ value = 2, text = "Arcanite bar"     },
+	{ value = 3, text = "Mooncloth"        },
+	{ value = 4, text = "Cure Rugged Hide" },
+};
+
+DISPLAY_MODE_OPTIONS = {
+	{ value = 0, text = "Dot"        },
+	{ value = 1, text = "Bar"        },
+	{ value = 2, text = "Mini-panel" },
+};
+
+OVERDUE_REMIND_OPTIONS = {
+	{ value = 0,  text = "Off"        },
+	{ value = 2,  text = "Every 2h"   },
+	{ value = 4,  text = "Every 4h"   },
+	{ value = 8,  text = "Every 8h"   },
+	{ value = 24, text = "Once a day" },
 };
 
 MC_CTRL = "MuteClockConfigFramePanelSettings";
@@ -58,9 +87,7 @@ MC_CTRL = "MuteClockConfigFramePanelSettings";
 -- -------------------------------------------------------
 function getCraftEntry(craftKey)
 	for _, entry in ipairs(TRACKED_CRAFTS) do
-		if (craftKey == entry.key) then
-			return entry;
-		end
+		if (craftKey == entry.key) then return entry; end
 	end
 	return nil;
 end
@@ -82,6 +109,10 @@ end
 -- -------------------------------------------------------
 function onVariablesLoaded()
 	if (not MuteClock) then MuteClock = {}; end
+
+	-- First-ever load detection (before creating player key)
+	local isFirstLoad = (MuteClock[CURRENT_PLAYER_NAME] == nil);
+
 	if (not MuteClock[CURRENT_PLAYER_NAME]) then
 		MuteClock[CURRENT_PLAYER_NAME] = {};
 	end
@@ -92,12 +123,22 @@ function onVariablesLoaded()
 	POSITION_Y        = mcLoad("position_y",        DEF_POSITION_Y);
 	DOT_SIZE          = mcLoad("dot_size",           DEF_DOT_SIZE);
 	DOT_HIDDEN        = mcLoad("dot_hidden",         DEF_DOT_HIDDEN);
-	SMART_ICON        = mcLoad("smart_icon",         DEF_SMART_ICON);
+	DISPLAY_MODE      = mcLoad("display_mode",       DEF_DISPLAY_MODE);
 	GROUP_BY_CRAFT    = mcLoad("group_by_craft",     DEF_GROUP_BY_CRAFT);
 	SHOW_READY_TIME   = mcLoad("show_ready_time",    DEF_SHOW_READY_TIME);
 	SHOW_OVERDUE      = mcLoad("show_overdue",       DEF_SHOW_OVERDUE);
 	SHOW_LAST_CRAFTED = mcLoad("show_last_crafted",  DEF_SHOW_LAST_CRAFTED);
 	SHOW_BADGE        = mcLoad("show_badge",         DEF_SHOW_BADGE);
+	TOOLTIP_MODE      = mcLoad("tooltip_mode",       DEF_TOOLTIP_MODE);
+	ICON_MODE         = mcLoad("icon_mode",          DEF_ICON_MODE);
+	OVERDUE_REMIND    = mcLoad("overdue_remind",     DEF_OVERDUE_REMIND);
+
+	-- Migrate old SMART_ICON boolean
+	local oldSmart = MuteClock[CURRENT_PLAYER_NAME]["smart_icon"];
+	if (oldSmart ~= nil and MuteClock[CURRENT_PLAYER_NAME]["icon_mode"] == nil) then
+		ICON_MODE = (oldSmart == 1) and 1 or 0;
+		MuteClock[CURRENT_PLAYER_NAME]["icon_mode"] = ICON_MODE;
+	end
 
 	IS_VARIABLES_LOADED = 1;
 
@@ -115,9 +156,17 @@ function onVariablesLoaded()
 		MC_FRIENDS = MuteClock._friends;
 	end
 
-	doApplyDotAppearance();
+	if (not MuteClock._manual) then
+		MuteClock._manual = {};
+	end
+
+	doApplyDisplayMode();
 	doPositionFrame();
 	doRunNotifications();
+
+	if (isFirstLoad) then
+		doShowOnboarding();
+	end
 end
 
 -- -------------------------------------------------------
@@ -132,36 +181,309 @@ function doSaveSettings()
 	p.position_y        = POSITION_Y;
 	p.dot_size          = DOT_SIZE;
 	p.dot_hidden        = DOT_HIDDEN;
-	p.smart_icon        = SMART_ICON;
+	p.display_mode      = DISPLAY_MODE;
+	p.icon_mode         = ICON_MODE;
 	p.group_by_craft    = GROUP_BY_CRAFT;
 	p.show_ready_time   = SHOW_READY_TIME;
 	p.show_overdue      = SHOW_OVERDUE;
 	p.show_last_crafted = SHOW_LAST_CRAFTED;
 	p.show_badge        = SHOW_BADGE;
+	p.tooltip_mode      = TOOLTIP_MODE;
+	p.overdue_remind    = OVERDUE_REMIND;
 end
 
 -- -------------------------------------------------------
--- Dot appearance
+-- Onboarding: first-load welcome tooltip
 -- -------------------------------------------------------
-function doApplyDotAppearance()
-	ClockFrame:SetWidth(DOT_SIZE);
-	ClockFrame:SetHeight(DOT_SIZE);
+function doShowOnboarding()
+	ClockFrame.OnboardingTimer = 30;
+	doUpdateOnboardingTooltip();
+end
+
+function doUpdateOnboardingTooltip()
+	if (not ClockFrame.OnboardingTimer or ClockFrame.OnboardingTimer <= 0) then return; end
+	GameTooltip:SetOwner(ClockFrame, "ANCHOR_NONE");
+	GameTooltip:SetPoint("TOPRIGHT", "ClockFrame", "TOPLEFT", -4, -8);
+	GameTooltip:ClearLines();
+	GameTooltip:AddLine("|cFF00FF00Welcome to MuteClock!|r");
+	GameTooltip:AddLine(" ");
+	GameTooltip:AddLine("Tracks your crafting cooldowns.", 0.9, 0.9, 0.9);
+	GameTooltip:AddLine("Open a trade skill window to start.", 0.9, 0.9, 0.9);
+	GameTooltip:AddLine(" ");
+	GameTooltip:AddLine("|cFF444444Right-click for options.|r");
+	GameTooltip:Show();
+end
+
+-- -------------------------------------------------------
+-- Display mode: dot / bar / mini-panel
+-- -------------------------------------------------------
+function doApplyDisplayMode()
 	if (DOT_HIDDEN == 1) then
 		ClockFrame:Hide();
+		ClockBarFrame:Hide();
+		ClockMiniPanel:Hide();
+		return;
+	end
+
+	if (DISPLAY_MODE == 1) then
+		ClockFrame:Hide();
+		ClockBarFrame:Show();
+		ClockMiniPanel:Hide();
+		doUpdateBar();
+	elseif (DISPLAY_MODE == 2) then
+		ClockFrame:Hide();
+		ClockBarFrame:Hide();
+		ClockMiniPanel:Show();
+		doUpdateMiniPanel();
 	else
+		-- Dot mode
+		ClockFrame:SetWidth(DOT_SIZE);
+		ClockFrame:SetHeight(DOT_SIZE);
 		ClockFrame:Show();
+		ClockBarFrame:Hide();
+		ClockMiniPanel:Hide();
 		doUpdateDot();
 	end
 end
 
+-- Legacy alias used in various places
+function doApplyDotAppearance()
+	doApplyDisplayMode();
+end
+
 function doPositionFrame()
-	ClockFrame:ClearAllPoints();
-	if (POSITION_X == nil or POSITION_Y == nil) then
-		ClockFrame:SetPoint("CENTER", "UIParent", "CENTER", 0, 0);
-	else
-		ClockFrame:SetPoint("CENTER", "UIParent", "BOTTOMLEFT", POSITION_X, POSITION_Y);
+	local function pos(f)
+		f:ClearAllPoints();
+		if (POSITION_X == nil or POSITION_Y == nil) then
+			f:SetPoint("CENTER", "UIParent", "CENTER", 0, 0);
+		else
+			f:SetPoint("CENTER", "UIParent", "BOTTOMLEFT", POSITION_X, POSITION_Y);
+		end
+	end
+	pos(ClockFrame);
+	pos(ClockBarFrame);
+	pos(ClockMiniPanel);
+end
+
+-- -------------------------------------------------------
+-- Bar mode update
+-- Bar: one row per tracked craft that has data.
+-- Each row: coloured pip (4x4) + short label + time string
+-- Row height 14px, bar width 120px.
+-- -------------------------------------------------------
+BAR_ROW_H  = 14;
+BAR_WIDTH  = 120;
+
+function doUpdateBar()
+	if (DISPLAY_MODE ~= 1) then return; end
+	local now    = time();
+	local rows   = {};
+
+	for charName, charData in pairs(MuteClock) do
+		if (type(charData) == "table" and charName ~= "_peers" and charName ~= "_friends") then
+			local inScope = (SH_ALL_CHARACTERS == 1) or (charName == CURRENT_PLAYER_NAME);
+			if (inScope) then
+				for k, v in pairs(charData) do
+					if (string.len(k) > 10 and string.sub(k, -10) == "-available") then
+						local craftKey = string.sub(k, 1, string.len(k) - 10);
+						local entry = getCraftEntry(craftKey);
+						if (entry) then
+							local remaining = (v > 0) and (v - now) or 0;
+							-- Deduplicate: keep best (most ready) per craft
+							local key = craftKey;
+							if (not rows[key] or remaining < rows[key].remaining) then
+								rows[key] = { entry = entry, remaining = remaining };
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	-- Flatten to ordered list
+	local list = {};
+	for _, entry in ipairs(TRACKED_CRAFTS) do
+		if (rows[entry.key]) then
+			table.insert(list, rows[entry.key]);
+		end
+	end
+
+	local n = table.getn(list);
+	if (n == 0) then
+		ClockBarFrame:SetHeight(BAR_ROW_H);
+		-- Show single grey "No data" row
+		local fs = MuteClockBarLine1;
+		if (fs) then fs:SetText("|cFF555555No data|r"); fs:Show(); end
+		for i = 2, 3 do
+			local f2 = getglobal("MuteClockBarLine"..i);
+			if (f2) then f2:Hide(); end
+			local p2 = getglobal("MuteClockBarPip"..i);
+			if (p2) then p2:Hide(); end
+		end
+		return;
+	end
+
+	ClockBarFrame:SetHeight(n * BAR_ROW_H + 2);
+
+	for i, row in ipairs(list) do
+		local pip  = getglobal("MuteClockBarPip"..i);
+		local line = getglobal("MuteClockBarLine"..i);
+		if (pip and line) then
+			-- Pip colour mirrors dot status colours
+			local r, g, b;
+			if     (row.remaining <= 0)     then r,g,b = 0.1,  0.9,  0.1;
+			elseif (row.remaining <= 3600)  then r,g,b = 1.0,  0.75, 0.1;
+			elseif (row.remaining <= 14400) then r,g,b = 1.0,  0.5,  0.1;
+			else                                 r,g,b = 0.55, 0.55, 0.55; end
+			pip:SetVertexColor(r, g, b, 1);
+			pip:Show();
+
+			local timeStr;
+			if (row.remaining <= 0) then
+				timeStr = "|cFF33DD33Ready|r";
+			else
+				timeStr = doFormatCountdown(row.remaining);
+			end
+			line:SetText("|cFFCCCCCC" .. row.entry.short .. "|r  " .. timeStr);
+			line:Show();
+		end
+	end
+	-- Hide unused rows
+	for i = n + 1, 3 do
+		local pip  = getglobal("MuteClockBarPip"..i);
+		local line = getglobal("MuteClockBarLine"..i);
+		if (pip)  then pip:Hide();  end
+		if (line) then line:Hide(); end
 	end
 end
+
+-- -------------------------------------------------------
+-- Mini-panel mode update
+-- A compact 130x68 floating panel showing own cooldowns.
+-- -------------------------------------------------------
+function doUpdateMiniPanel()
+	if (DISPLAY_MODE ~= 2) then return; end
+	local now  = time();
+	local rows = {};
+
+	for charName, charData in pairs(MuteClock) do
+		if (type(charData) == "table" and charName ~= "_peers" and charName ~= "_friends") then
+			local inScope = (SH_ALL_CHARACTERS == 1) or (charName == CURRENT_PLAYER_NAME);
+			if (inScope) then
+				for k, v in pairs(charData) do
+					if (string.len(k) > 10 and string.sub(k, -10) == "-available") then
+						local craftKey = string.sub(k, 1, string.len(k) - 10);
+						local entry = getCraftEntry(craftKey);
+						if (entry) then
+							local remaining = (v > 0) and (v - now) or 0;
+							local key = craftKey;
+							if (not rows[key] or remaining < rows[key].remaining) then
+								rows[key] = { entry = entry, remaining = remaining };
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	local list = {};
+	for _, entry in ipairs(TRACKED_CRAFTS) do
+		if (rows[entry.key]) then table.insert(list, rows[entry.key]); end
+	end
+
+	for i = 1, 3 do
+		local label = getglobal("MuteClockMiniLabel"..i);
+		local val   = getglobal("MuteClockMiniVal"..i);
+		local row   = list[i];
+		if (label and val) then
+			if (row) then
+				label:SetText("|cFF888888" .. row.entry.short .. "|r");
+				label:Show();
+				local r, g, b;
+				if     (row.remaining <= 0)     then r,g,b = 0.1, 0.9, 0.1;
+				elseif (row.remaining <= 3600)  then r,g,b = 1.0, 0.75,0.1;
+				elseif (row.remaining <= 14400) then r,g,b = 1.0, 0.5, 0.1;
+				else                                 r,g,b = 0.55,0.55,0.55; end
+				if (row.remaining <= 0) then
+					val:SetText("|cFF33DD33Ready|r");
+				else
+					val:SetText(string.format("|cFF%02X%02X%02X%s|r", floor(r*255), floor(g*255), floor(b*255), doFormatCountdown(row.remaining)));
+				end
+				val:Show();
+			else
+				label:Hide();
+				val:Hide();
+			end
+		end
+	end
+end
+
+-- -------------------------------------------------------
+-- Right-click context menu on ClockFrame
+-- -------------------------------------------------------
+function doShowContextMenu()
+	if (IS_VARIABLES_LOADED ~= 1) then return; end
+	UIDropDownMenu_Initialize(MuteClockContextMenu, doContextMenu_Init, "MENU");
+	ToggleDropDownMenu(1, nil, MuteClockContextMenu, "cursor", 0, 0);
+end
+
+function doContextMenu_Init()
+	local info;
+
+	info = {};
+	info.text     = "|cFF00FF00MuteClock|r";
+	info.isTitle  = 1;
+	info.notCheckable = 1;
+	UIDropDownMenu_AddButton(info);
+
+	info = {};
+	info.text     = "Open Config";
+	info.notCheckable = 1;
+	info.func     = function() MuteClockConfigFrame:Show(); end;
+	UIDropDownMenu_AddButton(info);
+
+	-- Switch tooltip view
+	local viewLabel = (TOOLTIP_MODE == 1) and "View: My Cooldowns" or "View: Crafters";
+	info = {};
+	info.text     = viewLabel;
+	info.notCheckable = 1;
+	info.func     = function()
+		TOOLTIP_MODE = (TOOLTIP_MODE == 1) and 0 or 1;
+		doSaveSettings();
+	end;
+	UIDropDownMenu_AddButton(info);
+
+	-- Display mode submenu header
+	info = {};
+	info.text     = "Display Mode";
+	info.notCheckable = 1;
+	info.hasArrow = 1;
+	info.value    = "DISPLAY_MODE_SUBMENU";
+	UIDropDownMenu_AddButton(info);
+
+	-- Separator
+	info = {};
+	info.text     = "";
+	info.notClickable = 1;
+	info.notCheckable = 1;
+	UIDropDownMenu_AddButton(info);
+
+	info = {};
+	info.text     = "Hide";
+	info.notCheckable = 1;
+	info.func     = function()
+		DOT_HIDDEN = 1;
+		doSaveSettings();
+		doApplyDisplayMode();
+	end;
+	UIDropDownMenu_AddButton(info);
+end
+
+-- Note: In 1.12, hasArrow submenus need UIDropDownMenu_StartCounting etc.
+-- For simplicity we handle display mode via the Settings panel dropdown only,
+-- and use the context menu arrow item as a label-only hint.
 
 -- -------------------------------------------------------
 -- Reset to defaults
@@ -174,42 +496,130 @@ function doSetDefaultSettings()
 	POSITION_Y        = DEF_POSITION_Y;
 	DOT_SIZE          = DEF_DOT_SIZE;
 	DOT_HIDDEN        = DEF_DOT_HIDDEN;
-	SMART_ICON        = DEF_SMART_ICON;
+	DISPLAY_MODE      = DEF_DISPLAY_MODE;
+	ICON_MODE         = DEF_ICON_MODE;
 	GROUP_BY_CRAFT    = DEF_GROUP_BY_CRAFT;
 	SHOW_READY_TIME   = DEF_SHOW_READY_TIME;
 	SHOW_OVERDUE      = DEF_SHOW_OVERDUE;
 	SHOW_LAST_CRAFTED = DEF_SHOW_LAST_CRAFTED;
 	SHOW_BADGE        = DEF_SHOW_BADGE;
+	TOOLTIP_MODE      = DEF_TOOLTIP_MODE;
+	OVERDUE_REMIND    = DEF_OVERDUE_REMIND;
 	doSaveSettings();
-	doApplyDotAppearance();
+	doApplyDisplayMode();
 	ClockFrame:ClearAllPoints();
 	ClockFrame:SetPoint("CENTER", "UIParent", "CENTER", 0, 0);
+	ClockBarFrame:ClearAllPoints();
+	ClockBarFrame:SetPoint("CENTER", "UIParent", "CENTER", 0, 0);
+	ClockMiniPanel:ClearAllPoints();
+	ClockMiniPanel:SetPoint("CENTER", "UIParent", "CENTER", 0, 0);
 	doInitializeConfig(1);
 end
 
 -- -------------------------------------------------------
 -- Config: tab switching
--- Reset Defaults lives inside PanelSettings so it hides
--- automatically with the panel on other tabs.
+-- Default tab is Planner
 -- -------------------------------------------------------
 function doShowConfigTab(tabName)
 	MuteClockConfigFramePanelSettings:Hide();
-	MuteClockConfigFramePanelHistory:Hide();
+	MuteClockConfigFramePanelPlanner:Hide();
 	MuteClockConfigFramePanelCrafters:Hide();
-	MuteClockConfigFramePanelNearby:Hide();
 	if (tabName == "Settings") then
 		MuteClockConfigFramePanelSettings:Show();
-	elseif (tabName == "History") then
-		MuteClockConfigFramePanelHistory:Show();
-		doPopulateHistory();
 	elseif (tabName == "Crafters") then
 		MuteClockConfigFramePanelCrafters:Show();
 		ClockFrame.CraftersRefreshTimer = 0;
 		doPopulateCrafters();
 	else
-		MuteClockConfigFramePanelNearby:Show();
-		doPopulateNearby();
+		MuteClockConfigFramePanelPlanner:Show();
+		doPopulatePlanner();
 	end
+end
+
+-- -------------------------------------------------------
+-- Dropdown helpers
+-- -------------------------------------------------------
+function doMakeDropDown_Init(options)
+	return function()
+		for _, opt in ipairs(options) do
+			local info = {};
+			info.text  = opt.text;
+			info.value = opt.value;
+			info.func  = opt.func;
+			UIDropDownMenu_AddButton(info);
+		end
+	end
+end
+
+function doIconModeDropDown_Init()
+	for _, opt in ipairs(ICON_MODE_OPTIONS) do
+		local info = {};
+		info.text  = opt.text;
+		info.value = opt.value;
+		info.func  = doIconModeDropDown_OnClick;
+		UIDropDownMenu_AddButton(info);
+	end
+end
+
+function doIconModeDropDown_OnClick()
+	ICON_MODE = this.value;
+	UIDropDownMenu_SetSelectedValue(MuteClockConfigFramePanelSettingsDropDownIcon, ICON_MODE);
+	doSaveSettings();
+	doApplyDisplayMode();
+end
+
+function doIconModeDropDown_GetText(mode)
+	for _, opt in ipairs(ICON_MODE_OPTIONS) do
+		if (opt.value == mode) then return opt.text; end
+	end
+	return "Smart (auto)";
+end
+
+function doDisplayModeDropDown_Init()
+	for _, opt in ipairs(DISPLAY_MODE_OPTIONS) do
+		local info = {};
+		info.text  = opt.text;
+		info.value = opt.value;
+		info.func  = doDisplayModeDropDown_OnClick;
+		UIDropDownMenu_AddButton(info);
+	end
+end
+
+function doDisplayModeDropDown_OnClick()
+	DISPLAY_MODE = this.value;
+	UIDropDownMenu_SetSelectedValue(MuteClockConfigFramePanelSettingsDropDownDisplay, DISPLAY_MODE);
+	doSaveSettings();
+	doApplyDisplayMode();
+end
+
+function doDisplayModeDropDown_GetText(mode)
+	for _, opt in ipairs(DISPLAY_MODE_OPTIONS) do
+		if (opt.value == mode) then return opt.text; end
+	end
+	return "Dot";
+end
+
+function doOverdueRemindDropDown_Init()
+	for _, opt in ipairs(OVERDUE_REMIND_OPTIONS) do
+		local info = {};
+		info.text  = opt.text;
+		info.value = opt.value;
+		info.func  = doOverdueRemindDropDown_OnClick;
+		UIDropDownMenu_AddButton(info);
+	end
+end
+
+function doOverdueRemindDropDown_OnClick()
+	OVERDUE_REMIND = this.value;
+	UIDropDownMenu_SetSelectedValue(MuteClockConfigFramePanelSettingsDropDownRemind, OVERDUE_REMIND);
+	doSaveSettings();
+end
+
+function doOverdueRemindDropDown_GetText(v)
+	for _, opt in ipairs(OVERDUE_REMIND_OPTIONS) do
+		if (opt.value == v) then return opt.text; end
+	end
+	return "Off";
 end
 
 -- -------------------------------------------------------
@@ -223,10 +633,19 @@ function doInitializeConfig(isDefaults)
 	getglobal(p.."CBReadyTime"):SetChecked(SHOW_READY_TIME);
 	getglobal(p.."CBOverdue"):SetChecked(SHOW_OVERDUE);
 	getglobal(p.."CBLastCrafted"):SetChecked(SHOW_LAST_CRAFTED);
-	getglobal(p.."CBSmartIcon"):SetChecked(SMART_ICON);
 	getglobal(p.."CBBadge"):SetChecked(SHOW_BADGE);
 	getglobal(p.."CBHide"):SetChecked(DOT_HIDDEN);
+	getglobal(p.."CBTooltipMode"):SetChecked(TOOLTIP_MODE);
 	getglobal(p.."SliderSize"):SetValue(DOT_SIZE);
+	local dd = getglobal(p.."DropDownIcon");
+	UIDropDownMenu_SetSelectedValue(dd, ICON_MODE);
+	UIDropDownMenu_SetText(doIconModeDropDown_GetText(ICON_MODE), dd);
+	local ddD = getglobal(p.."DropDownDisplay");
+	UIDropDownMenu_SetSelectedValue(ddD, DISPLAY_MODE);
+	UIDropDownMenu_SetText(doDisplayModeDropDown_GetText(DISPLAY_MODE), ddD);
+	local ddR = getglobal(p.."DropDownRemind");
+	UIDropDownMenu_SetSelectedValue(ddR, OVERDUE_REMIND);
+	UIDropDownMenu_SetText(doOverdueRemindDropDown_GetText(OVERDUE_REMIND), ddR);
 end
 
 -- -------------------------------------------------------
@@ -242,16 +661,16 @@ function doConfigSave()
 	elseif (n == p.."CBReadyTime")   then SHOW_READY_TIME   = this:GetChecked() or 0;
 	elseif (n == p.."CBOverdue")     then SHOW_OVERDUE      = this:GetChecked() or 0;
 	elseif (n == p.."CBLastCrafted") then SHOW_LAST_CRAFTED = this:GetChecked() or 0;
-	elseif (n == p.."CBSmartIcon")   then SMART_ICON        = this:GetChecked() or 0;
 	elseif (n == p.."CBBadge")       then SHOW_BADGE        = this:GetChecked() or 0;
 	elseif (n == p.."CBHide")        then DOT_HIDDEN        = this:GetChecked() or 0;
+	elseif (n == p.."CBTooltipMode") then TOOLTIP_MODE      = this:GetChecked() or 0;
 	elseif (n == p.."SliderSize")    then
 		DOT_SIZE = floor(this:GetValue());
 		getglobal(n.."Text"):SetText("Dot Size ("..DOT_SIZE.."px)");
 	end
 
 	doSaveSettings();
-	doApplyDotAppearance();
+	doApplyDisplayMode();
 end
 
 -- -------------------------------------------------------
@@ -272,9 +691,8 @@ end
 
 -- -------------------------------------------------------
 -- Scroll panel helpers
--- 18px rows: enough for GameFontNormalSmall + button at 16px
 -- -------------------------------------------------------
-MC_ROW_H = 19;   -- px per row (font ~14px + 5px breathing room)
+MC_ROW_H = 19;
 
 function mcClearContent(contentFrame)
 	local i = 1;
@@ -288,7 +706,6 @@ function mcClearContent(contentFrame)
 	end
 end
 
--- Plain text line (no button)
 function mcAddLine(contentFrame, lineIndex, text, r, g, b)
 	local name = contentFrame:GetName() .. "Line" .. lineIndex;
 	local fs   = getglobal(name);
@@ -305,7 +722,6 @@ function mcAddLine(contentFrame, lineIndex, text, r, g, b)
 	return lineIndex + 1;
 end
 
--- Section header: slightly brighter blue-tinted label
 function mcAddHeader(contentFrame, lineIndex, text)
 	local name = contentFrame:GetName() .. "Line" .. lineIndex;
 	local fs   = getglobal(name);
@@ -322,9 +738,7 @@ function mcAddHeader(contentFrame, lineIndex, text)
 	return lineIndex + 1;
 end
 
--- Blank spacer row
 function mcAddSpacer(contentFrame, lineIndex)
-	-- Just advance the line counter; reuse a hidden Line slot
 	local name = contentFrame:GetName() .. "Line" .. lineIndex;
 	local fs   = getglobal(name);
 	if (not fs) then
@@ -338,9 +752,21 @@ function mcAddSpacer(contentFrame, lineIndex)
 	return lineIndex + 1;
 end
 
--- Row with a small inline action button on the left.
--- The button is 16x16 with just a coloured symbol and a
--- very faint background — much less heavy than a WoW button template.
+function mcAddSmallSpacer(contentFrame, lineIndex)
+	local name = contentFrame:GetName() .. "Line" .. lineIndex;
+	local fs   = getglobal(name);
+	if (not fs) then
+		fs = contentFrame:CreateFontString(name, "OVERLAY", "GameFontNormalSmall");
+		fs:SetWidth(1);
+		fs:SetHeight(8);
+	end
+	fs:SetText("");
+	fs:ClearAllPoints();
+	fs:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", 0, -((lineIndex - 1) * MC_ROW_H));
+	fs:Show();
+	return lineIndex + 1;
+end
+
 function mcAddRowWithButton(contentFrame, lineIndex, labelText, btnSymbol, symR, symG, symB, btnCallback)
 	local yOff = -((lineIndex - 1) * MC_ROW_H);
 	local btnW = 16;
@@ -352,36 +778,27 @@ function mcAddRowWithButton(contentFrame, lineIndex, labelText, btnSymbol, symR,
 		btn = CreateFrame("Button", btnName, contentFrame);
 		btn:SetWidth(btnW);
 		btn:SetHeight(btnW);
-
-		-- Faint dark background square
 		local bg = btn:CreateTexture(nil, "BACKGROUND");
 		bg:SetTexture("Interface\\Buttons\\WHITE8X8");
 		bg:SetVertexColor(0.08, 0.08, 0.10, 0.75);
 		bg:SetAllPoints();
-
-		-- Highlight on hover
 		local hl = btn:CreateTexture(nil, "HIGHLIGHT");
 		hl:SetTexture("Interface\\Buttons\\WHITE8X8");
 		hl:SetVertexColor(1, 1, 1, 0.12);
 		hl:SetAllPoints();
-
-		-- Symbol
 		local sym = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal");
 		sym:SetAllPoints();
 		sym:SetJustifyH("CENTER");
 		sym:SetJustifyV("MIDDLE");
 		btn._sym = sym;
 	end
-
 	btn._sym:SetText(btnSymbol);
 	btn._sym:SetTextColor(symR, symG, symB, 1);
 	btn:SetScript("OnClick", btnCallback);
 	btn:ClearAllPoints();
-	-- Centre the button vertically within the row
 	btn:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", 0, yOff - 1);
 	btn:Show();
 
-	-- Label to the right of the button
 	local fsName = contentFrame:GetName() .. "Line" .. lineIndex;
 	local fs = getglobal(fsName);
 	if (not fs) then
@@ -394,7 +811,6 @@ function mcAddRowWithButton(contentFrame, lineIndex, labelText, btnSymbol, symR,
 	fs:ClearAllPoints();
 	fs:SetPoint("TOPLEFT", contentFrame, "TOPLEFT", btnW + gap, yOff);
 	fs:Show();
-
 	return lineIndex + 1;
 end
 
@@ -409,26 +825,36 @@ function mcFinaliseScroll(scrollFrame, scrollBar, contentFrame, lineCount)
 end
 
 -- -------------------------------------------------------
--- History panel
+-- Planner panel  (replaces History)
+-- Shows ALL cooldowns — own alts + saved crafters —
+-- sorted by remaining time, soonest first.
+-- Columns: Name | Craft | Status
 -- -------------------------------------------------------
-function doPopulateHistory()
-	local scrollFrame  = MuteClockConfigFramePanelHistoryScrollFrame;
-	local scrollBar    = MuteClockConfigFramePanelHistoryScrollBar;
-	local contentFrame = MuteClockConfigFramePanelHistoryScrollFrameContent;
+function doPopulatePlanner()
+	local scrollFrame  = MuteClockConfigFramePanelPlannerScrollFrame;
+	local scrollBar    = MuteClockConfigFramePanelPlannerScrollBar;
+	local contentFrame = MuteClockConfigFramePanelPlannerScrollFrameContent;
+	mcClearContent(contentFrame);
+	local li  = 1;
+	local now = time();
 
-	local entries = {};
+	-- Collect own-character rows
+	local rows = {};
 	for charName, charData in pairs(MuteClock) do
 		if (type(charData) == "table" and charName ~= "_peers" and charName ~= "_friends") then
-			for k, v in pairs(charData) do
-				if (string.len(k) > 8 and string.sub(k, -8) == "-history") then
-					local craftKey = string.sub(k, 1, string.len(k) - 8);
-					local entry = getCraftEntry(craftKey);
-					if (entry and type(v) == "table") then
-						for _, rec in ipairs(v) do
-							table.insert(entries, {
-								t        = rec.t,
-								charName = charName,
-								label    = entry.label,
+			local inScope = (SH_ALL_CHARACTERS == 1) or (charName == CURRENT_PLAYER_NAME);
+			if (inScope) then
+				for k, v in pairs(charData) do
+					if (string.len(k) > 10 and string.sub(k, -10) == "-available") then
+						local craftKey = string.sub(k, 1, string.len(k) - 10);
+						local entry = getCraftEntry(craftKey);
+						if (entry) then
+							local remaining = (v > 0) and (v - now) or 0;
+							table.insert(rows, {
+								source    = "own",
+								name      = charName,
+								entry     = entry,
+								remaining = remaining,
 							});
 						end
 					end
@@ -437,25 +863,87 @@ function doPopulateHistory()
 		end
 	end
 
-	table.sort(entries, function(a, b)
-		if (a.t ~= b.t) then return a.t > b.t; end
-		return false;
+	-- Collect saved-crafter rows
+	for name in pairs(MC_FRIENDS) do
+		local data    = MC_PEERS[name] or {};
+		local updated = data._updated;
+		local stale   = updated and ((now - updated) > 172800); -- >48h
+		for _, entry in ipairs(TRACKED_CRAFTS) do
+			local ts = data[entry.key];
+			if (ts ~= nil) then
+				local remaining = (ts > 0) and (ts - now) or 0;
+				table.insert(rows, {
+					source    = "crafter",
+					name      = name,
+					entry     = entry,
+					remaining = remaining,
+					stale     = stale,
+				});
+			end
+		end
+	end
+
+	-- Sort: ready first, then by remaining ascending
+	table.sort(rows, function(a, b)
+		if ((a.remaining <= 0) ~= (b.remaining <= 0)) then return a.remaining <= 0; end
+		if (a.remaining ~= b.remaining) then return a.remaining < b.remaining; end
+		return a.name < b.name;
 	end);
 
-	mcClearContent(contentFrame);
-	local li = 1;
+	if (table.getn(rows) == 0) then
+		li = mcAddLine(contentFrame, li, "No cooldown data yet.", 0.5, 0.5, 0.5);
+		li = mcAddLine(contentFrame, li, "Open trade skill windows on your characters.", 0.38, 0.38, 0.38);
+		li = mcAddLine(contentFrame, li, "Add crafters in the Crafters tab.", 0.38, 0.38, 0.38);
+		mcFinaliseScroll(scrollFrame, scrollBar, contentFrame, li - 1);
+		return;
+	end
 
-	if (table.getn(entries) == 0) then
-		li = mcAddLine(contentFrame, li, "No crafts recorded yet.", 0.5, 0.5, 0.5);
-		li = mcAddLine(contentFrame, li, "Open a trade skill and craft something.", 0.38, 0.38, 0.38);
-	else
-		for _, e in ipairs(entries) do
-			local when    = date("%a %d %b  %H:%M", e.t);
-			local isMine  = (e.charName == CURRENT_PLAYER_NAME);
-			local nameCol = isMine and "|cFFFFD100" or "|cFFAAAAAA";
-			li = mcAddLine(contentFrame, li,
-				nameCol .. e.charName .. "|r  |cFF00CCFF" .. e.label .. "|r  |cFF505050" .. when .. "|r");
+	-- Column header
+	local cw = contentFrame:GetWidth();
+	li = mcAddLine(contentFrame, li,
+		"|cFF5AC8FACHARACTER|r                  |cFF5AC8FACRAFT|r                          |cFF5AC8FASTATUS|r");
+
+	local lastReady = nil;
+	for _, row in ipairs(rows) do
+		-- Section divider between ready and waiting
+		if (lastReady ~= nil and (row.remaining > 0) ~= lastReady) then
+			li = mcAddSpacer(contentFrame, li);
 		end
+		lastReady = (row.remaining <= 0);
+
+		local nameCol = (row.source == "own")
+			and ((row.name == CURRENT_PLAYER_NAME) and "|cFFFFD100" or "|cFFAAAAAA")
+			or  "|cFF00CCFF";
+		local staleTag = (row.stale) and " |cFFFF6600⚠|r" or "";
+		local nameStr = nameCol .. row.name .. "|r" .. staleTag;
+
+		local craftStr = "|cFF888888" .. row.entry.label .. "|r";
+
+		local statusStr;
+		if (row.remaining <= 0) then
+			local od = "";
+			if (SHOW_OVERDUE == 1) then
+				local s = doFormatOverdue(row.remaining);
+				if (s) then od = "  |cFFFF6600" .. s .. "|r"; end
+			end
+			statusStr = "|cFF33DD33Ready|r" .. od;
+		else
+			local r2, g2, b2;
+			if     (row.remaining <= 3600)  then r2,g2,b2 = 1.0, 0.75, 0.1;
+			elseif (row.remaining <= 14400) then r2,g2,b2 = 1.0, 0.50, 0.1;
+			else                                 r2,g2,b2 = 0.55,0.55, 0.55; end
+			local ts = string.format("|cFF%02X%02X%02X%s|r",
+				floor(r2*255), floor(g2*255), floor(b2*255), doFormatCountdown(row.remaining));
+			if (SHOW_READY_TIME == 1) then
+				local rt = doFormatReadyTime(row.remaining);
+				if (rt) then ts = ts .. "  |cFF555555" .. rt .. "|r"; end
+			end
+			statusStr = ts;
+		end
+
+		-- Pad name and craft to fixed widths using spaces
+		-- (GameFontNormalSmall is proportional so this is approximate)
+		li = mcAddLine(contentFrame, li, nameStr .. "   " .. craftStr .. "   " .. statusStr);
 	end
 
 	mcFinaliseScroll(scrollFrame, scrollBar, contentFrame, li - 1);
@@ -478,7 +966,7 @@ function Clock_OnLoad()
 	this:RegisterEvent("RAID_ROSTER_UPDATE");
 
 	if (DEFAULT_CHAT_FRAME) then
-		DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00MuteClock|r loaded.");
+		DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00MuteClock v2|r loaded.");
 	end
 	SLASH_MUTECLOCK1 = "/muteclock";
 	SlashCmdList["MUTECLOCK"] = SlashCommandHandler;
@@ -495,12 +983,38 @@ function MuteClockConfig_OnLoad()
 	MuteClockConfigFrameTitle:SetTextColor(0.85, 0.88, 1, 1);
 	MuteClockDivTracking:SetVertexColor(0.25, 0.55, 0.75, 0.4);
 	MuteClockDivDisplay:SetVertexColor(0.25, 0.55, 0.75, 0.4);
+	MuteClockDivNotify:SetVertexColor(0.25, 0.55, 0.75, 0.4);
 	MuteClockDivDot:SetVertexColor(0.25, 0.55, 0.75, 0.4);
+	MuteClockCraftersDivider:SetVertexColor(0.25, 0.55, 0.75, 0.35);
 	this:RegisterForDrag("LeftButton");
-	MuteClockConfigFramePanelHistory:Hide();
-	MuteClockConfigFramePanelCrafters:Hide();
-	MuteClockConfigFramePanelNearby:Hide();
-	MuteClockConfigFramePanelSettings:Show();
+	MuteClockConfigFramePanelPlanner:Hide();
+	MuteClockConfigFramePanelSettings:Hide();
+	MuteClockConfigFramePanelCrafters:Show();
+	UIDropDownMenu_Initialize(MuteClockConfigFramePanelSettingsDropDownIcon, doIconModeDropDown_Init);
+	UIDropDownMenu_SetWidth(120, MuteClockConfigFramePanelSettingsDropDownIcon);
+	UIDropDownMenu_Initialize(MuteClockConfigFramePanelSettingsDropDownDisplay, doDisplayModeDropDown_Init);
+	UIDropDownMenu_SetWidth(100, MuteClockConfigFramePanelSettingsDropDownDisplay);
+	UIDropDownMenu_Initialize(MuteClockConfigFramePanelSettingsDropDownRemind, doOverdueRemindDropDown_Init);
+	UIDropDownMenu_SetWidth(100, MuteClockConfigFramePanelSettingsDropDownRemind);
+end
+
+function MuteClockConfig_OnShow()
+	doInitializeConfig(0);
+	doShowConfigTab("Planner");
+end
+
+function MuteClockBar_OnLoad()
+	this:RegisterForDrag("LeftButton");
+	this:Hide();
+	-- Style the bar background
+	MuteClockBarBg:SetVertexColor(0.05, 0.05, 0.08, 0.88);
+end
+
+function MuteClockMiniPanel_OnLoad()
+	this:RegisterForDrag("LeftButton");
+	this:Hide();
+	MuteClockMiniPanelBg:SetVertexColor(0.05, 0.05, 0.08, 0.88);
+	MuteClockMiniPanelBorder:SetVertexColor(0.20, 0.45, 0.65, 0.7);
 end
 
 function doBadgeInit()
@@ -565,6 +1079,8 @@ function Clock_OnEvent()
 					MuteClock[CURRENT_PLAYER_NAME][key .. "-available"] = avail;
 					MuteClock[CURRENT_PLAYER_NAME][key .. "-notified"]  = nil;
 					MuteClock[CURRENT_PLAYER_NAME][key .. "-crafted"]   = time();
+					-- Clear session reminder so it fires again next window open
+					MC_SESSION_NOTIFIED[CURRENT_PLAYER_NAME .. ":" .. key] = nil;
 					doRecordHistory(CURRENT_PLAYER_NAME, key);
 					doNetSendCraft(key, avail);
 				end
@@ -589,7 +1105,7 @@ function Clock_OnEvent()
 		doNetSend("HELLO");
 		doNetBroadcastAll();
 
-	elseif (event == "TRADE_SKILL_SHOW" or event == "TRADE_SKILL_CLOSE") then
+	elseif (event == "TRADE_SKILL_SHOW") then
 		local knownCrafts = {};
 		local n = GetNumTradeSkills();
 		for i = 1, n do
@@ -609,18 +1125,30 @@ function Clock_OnEvent()
 			end
 		end
 
-		local charData = MuteClock[CURRENT_PLAYER_NAME];
-		for k in pairs(charData) do
-			if (string.len(k) > 10 and string.sub(k, -10) == "-available") then
-				local craftKey = string.sub(k, 1, string.len(k) - 10);
-				if (getCraftEntry(craftKey) and not knownCrafts[craftKey]) then
-					charData[craftKey .. "-available"] = nil;
-					charData[craftKey .. "-notified"]  = nil;
-					charData[craftKey .. "-crafted"]   = nil;
+		-- Session re-arm reminder: if a craft is ready and we haven't
+		-- reminded this session, fire one notification.
+		if (DO_NOTIFY == 1) then
+			local charData = MuteClock[CURRENT_PLAYER_NAME];
+			for craftName in pairs(knownCrafts) do
+				local entry = getCraftEntry(craftName);
+				if (entry) then
+					local v = charData[craftName .. "-available"];
+					if (v ~= nil) then
+						local remaining = (v > 0) and (v - time()) or 0;
+						local sessionKey = CURRENT_PLAYER_NAME .. ":" .. craftName;
+						if (remaining <= 0 and not MC_SESSION_NOTIFIED[sessionKey]) then
+							MC_SESSION_NOTIFIED[sessionKey] = true;
+							doSendNotify(CURRENT_PLAYER_NAME, entry, remaining);
+						end
+					end
 				end
 			end
 		end
 
+		-- Do NOT clean up other-profession data. See earlier fix.
+		doNetBroadcastAll();
+
+	elseif (event == "TRADE_SKILL_CLOSE") then
 		doNetBroadcastAll();
 	end
 end
@@ -629,25 +1157,39 @@ end
 -- Per-frame update (5s tick)
 -- -------------------------------------------------------
 function Clock_OnUpdate(arg1)
-	ClockFrame.TimeSinceLastUpdate = ClockFrame.TimeSinceLastUpdate + arg1;
+	ClockFrame.TimeSinceLastUpdate = (ClockFrame.TimeSinceLastUpdate or 0) + arg1;
 	if (ClockFrame.TimeSinceLastUpdate >= 5.0) then
 		ClockFrame.TimeSinceLastUpdate = 0;
 		if (IS_VARIABLES_LOADED ~= 1) then return; end
 		doRunNotifications();
-		doUpdateDot();
+		if     (DISPLAY_MODE == 0) then doUpdateDot();
+		elseif (DISPLAY_MODE == 1) then doUpdateBar();
+		elseif (DISPLAY_MODE == 2) then doUpdateMiniPanel();
+		end
+		-- Dismiss onboarding tooltip after 30s
+		if (ClockFrame.OnboardingTimer and ClockFrame.OnboardingTimer > 0) then
+			ClockFrame.OnboardingTimer = ClockFrame.OnboardingTimer - 5;
+			if (ClockFrame.OnboardingTimer <= 0) then
+				ClockFrame.OnboardingTimer = 0;
+				if (GameTooltip:GetOwner() == ClockFrame) then
+					GameTooltip:Hide();
+				end
+			end
+		end
 	end
 
 	ClockFrame.CraftersRefreshTimer = (ClockFrame.CraftersRefreshTimer or 0) + arg1;
 	if (ClockFrame.CraftersRefreshTimer >= 5.0) then
 		ClockFrame.CraftersRefreshTimer = 0;
-		if (IS_VARIABLES_LOADED == 1 and MuteClockConfigFramePanelCrafters:IsVisible()) then
-			doPopulateCrafters();
+		if (IS_VARIABLES_LOADED == 1) then
+			if (MuteClockConfigFramePanelCrafters:IsVisible()) then doPopulateCrafters(); end
+			if (MuteClockConfigFramePanelPlanner:IsVisible())  then doPopulatePlanner();  end
 		end
 	end
 end
 
 -- -------------------------------------------------------
--- Drag and click
+-- Drag handlers (shared logic for all movable frames)
 -- -------------------------------------------------------
 function ClockFrame_OnDragStart()
 	ClockFrame:ClearAllPoints();
@@ -660,10 +1202,48 @@ function ClockFrame_OnDragStop()
 	doSaveSettings();
 end
 
+function ClockBarFrame_OnDragStop()
+	ClockBarFrame:StopMovingOrSizing();
+	POSITION_X, POSITION_Y = ClockBarFrame:GetCenter();
+	doSaveSettings();
+end
+
+function ClockMiniPanel_OnDragStop()
+	ClockMiniPanel:StopMovingOrSizing();
+	POSITION_X, POSITION_Y = ClockMiniPanel:GetCenter();
+	doSaveSettings();
+end
+
+-- -------------------------------------------------------
+-- Click handling (left + right)
+-- -------------------------------------------------------
 function ClickHandler(btn, updown)
-	if (btn == "LeftButton" and updown == "UP" and IsControlKeyDown()) then
-		MuteClockConfigFrame:Show();
+	if (updown ~= "UP") then return; end
+	-- Dismiss onboarding on any click
+	if (ClockFrame.OnboardingTimer and ClockFrame.OnboardingTimer > 0) then
+		ClockFrame.OnboardingTimer = 0;
+		if (GameTooltip:GetOwner() == ClockFrame) then GameTooltip:Hide(); end
 	end
+	if (btn == "RightButton") then
+		doShowContextMenu();
+	elseif (btn == "LeftButton") then
+		if (IsControlKeyDown()) then
+			MuteClockConfigFrame:Show();
+		elseif (IsShiftKeyDown()) then
+			TOOLTIP_MODE = (TOOLTIP_MODE == 1) and 0 or 1;
+			doSaveSettings();
+			if (GameTooltip:IsVisible() and GameTooltip:GetOwner() == ClockFrame) then
+				GameTooltip:ClearLines();
+				doFillTooltip();
+				GameTooltip:Show();
+			end
+		end
+	end
+end
+
+-- Shared click handler for bar and mini-panel
+function AltFrame_ClickHandler(btn, updown)
+	ClickHandler(btn, updown);
 end
 
 -- -------------------------------------------------------
@@ -673,10 +1253,11 @@ function SlashCommandHandler(msg)
 	local cmd = string.gsub(msg, "^%s*(.-)%s*$", "%1");
 	if (cmd == "") then
 		DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00MuteClock|r commands:");
-		DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFF33/muteclock config|r  open settings");
-		DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFF33/muteclock reset|r   restore defaults");
-		DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFF33/muteclock show|r    unhide the dot");
-		DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFF33/muteclock debug|r   print network state");
+		DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFF33/muteclock config|r   open settings");
+		DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFF33/muteclock reset|r    restore defaults");
+		DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFF33/muteclock show|r     unhide the indicator");
+		DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFF33/muteclock status|r   print cooldown summary to chat");
+		DEFAULT_CHAT_FRAME:AddMessage("  |cFFFFFF33/muteclock debug|r    print network state");
 	elseif (cmd == "config") then
 		MuteClockConfigFrame:Show();
 	elseif (cmd == "reset") then
@@ -685,7 +1266,9 @@ function SlashCommandHandler(msg)
 	elseif (cmd == "show") then
 		DOT_HIDDEN = 0;
 		doSaveSettings();
-		doApplyDotAppearance();
+		doApplyDisplayMode();
+	elseif (cmd == "status") then
+		doSlashStatus();
 	elseif (cmd == "debug") then
 		local ch = doNetGetChannel();
 		DEFAULT_CHAT_FRAME:AddMessage("|cFF00FF00MuteClock|r debug:");
@@ -706,6 +1289,63 @@ function SlashCommandHandler(msg)
 			DEFAULT_CHAT_FRAME:AddMessage("  |cFFAAAAAAPeers: none seen yet|r");
 		end
 		doNetSendAll("HELLO");
+	end
+end
+
+-- /muteclock status — shareable summary line
+function doSlashStatus()
+	local now   = time();
+	local parts = {};
+
+	-- Own alts
+	for charName, charData in pairs(MuteClock) do
+		if (type(charData) == "table" and charName ~= "_peers" and charName ~= "_friends") then
+			local inScope = (SH_ALL_CHARACTERS == 1) or (charName == CURRENT_PLAYER_NAME);
+			if (inScope) then
+				for k, v in pairs(charData) do
+					if (string.len(k) > 10 and string.sub(k, -10) == "-available") then
+						local craftKey = string.sub(k, 1, string.len(k) - 10);
+						local entry = getCraftEntry(craftKey);
+						if (entry) then
+							local remaining = (v > 0) and (v - now) or 0;
+							local s;
+							if (remaining <= 0) then
+								local od = doFormatOverdue(remaining);
+								s = "|cFF33DD33ready|r" .. (od and (" |cFFFF6600" .. od .. "|r") or "");
+							else
+								s = doFormatCountdown(remaining);
+							end
+							table.insert(parts, "|cFFFFD100" .. charName .. "|r " .. entry.label .. " " .. s);
+						end
+					end
+				end
+			end
+		end
+	end
+
+	-- Crafters
+	for name in pairs(MC_FRIENDS) do
+		local data = MC_PEERS[name] or {};
+		for _, entry in ipairs(TRACKED_CRAFTS) do
+			local ts = data[entry.key];
+			if (ts ~= nil) then
+				local remaining = (ts > 0) and (ts - now) or 0;
+				local s;
+				if (remaining <= 0) then
+					s = "|cFF33DD33ready|r";
+				else
+					s = doFormatCountdown(remaining);
+				end
+				table.insert(parts, "|cFF00CCFF" .. name .. "|r " .. entry.label .. " " .. s);
+			end
+		end
+	end
+
+	local frame = SELECTED_CHAT_FRAME or DEFAULT_CHAT_FRAME;
+	if (table.getn(parts) == 0) then
+		frame:AddMessage("|cFF00FF00MuteClock|r  No data yet.");
+	else
+		frame:AddMessage("|cFF00FF00MuteClock:|r  " .. table.concat(parts, "  |cFF333333·|r  "));
 	end
 end
 
@@ -755,7 +1395,7 @@ function doFormatTimestamp(t)
 end
 
 -- -------------------------------------------------------
--- Collect cooldown rows
+-- Collect cooldown rows (own characters)
 -- -------------------------------------------------------
 function doCollectCooldownData()
 	local results = {};
@@ -794,6 +1434,8 @@ function doGetDotStatus()
 	local hasReady = false;
 	local hasSoon  = false;
 	local readyN   = 0;
+	local crafterReadyN = 0;
+
 	for charName, charData in pairs(MuteClock) do
 		if (type(charData) == "table" and charName ~= "_peers" and charName ~= "_friends") then
 			local inScope = (SH_ALL_CHARACTERS == 1) or (charName == CURRENT_PLAYER_NAME);
@@ -816,14 +1458,28 @@ function doGetDotStatus()
 			end
 		end
 	end
-	if (not hasData) then return 0, 0; end
-	if (hasReady)    then return 1, readyN; end
-	if (hasSoon)     then return 2, 0; end
-	return 3, 0;
+
+	-- Count crafter readies for badge
+	local now = time();
+	for name in pairs(MC_FRIENDS) do
+		local data = MC_PEERS[name] or {};
+		for _, entry in ipairs(TRACKED_CRAFTS) do
+			local ts = data[entry.key];
+			if (ts ~= nil) then
+				local rem = (ts > 0) and (ts - now) or 0;
+				if (rem <= 0) then crafterReadyN = crafterReadyN + 1; end
+			end
+		end
+	end
+
+	if (not hasData) then return 0, 0, 0; end
+	if (hasReady)    then return 1, readyN, crafterReadyN; end
+	if (hasSoon)     then return 2, 0, crafterReadyN; end
+	return 3, 0, crafterReadyN;
 end
 
 -- -------------------------------------------------------
--- SmartIcon: best ready craft entry
+-- SmartIcon: best ready craft entry (ICON_MODE=1)
 -- -------------------------------------------------------
 function doGetSmartIcon()
 	local best = {};
@@ -928,44 +1584,38 @@ end
 function doNetOnMessage(sender, msg)
 	if (msg == "HELLO") then
 		if (not MC_PEERS[sender]) then MC_PEERS[sender] = {}; end
-		if (not MC_FRIENDS[sender]) then
-			MC_NEARBY[sender] = true;
-		end
+		if (not MC_FRIENDS[sender]) then MC_NEARBY[sender] = true; end
 		doNetBroadcastAll();
 
 	elseif (string.sub(msg, 1, 6) == "REPLY:") then
 		if (not MC_PEERS[sender]) then MC_PEERS[sender] = {}; end
-		if (not MC_FRIENDS[sender]) then
-			MC_NEARBY[sender] = true;
-		end
+		if (not MC_FRIENDS[sender]) then MC_NEARBY[sender] = true; end
 		local data = MC_PEERS[sender];
-		for k in pairs(data) do data[k] = nil; end
+		for k in pairs(data) do
+			if (k ~= "_updated") then data[k] = nil; end
+		end
 		for record in string.gfind(string.sub(msg, 7), "[^;]+") do
 			local craftKey, ts = doNetParseRecord(record);
 			if (craftKey and ts and getCraftEntry(craftKey)) then
 				data[craftKey] = ts;
 			end
 		end
+		data._updated = time();
 		MuteClock._peers = MC_PEERS;
 
 	elseif (string.sub(msg, 1, 3) == "CD:") then
 		local craftKey, ts = doNetParseRecord(string.sub(msg, 4));
 		if (craftKey and ts and getCraftEntry(craftKey)) then
 			if (not MC_PEERS[sender]) then MC_PEERS[sender] = {}; end
-			if (not MC_FRIENDS[sender]) then
-				MC_NEARBY[sender] = true;
-			end
-			MC_PEERS[sender][craftKey] = ts;
+			if (not MC_FRIENDS[sender]) then MC_NEARBY[sender] = true; end
+			MC_PEERS[sender][craftKey]  = ts;
+			MC_PEERS[sender]._updated   = time();
 			MuteClock._peers = MC_PEERS;
 		end
 	end
 
-	if (MuteClockConfigFramePanelCrafters:IsVisible()) then
-		doPopulateCrafters();
-	end
-	if (MuteClockConfigFramePanelNearby:IsVisible()) then
-		doPopulateNearby();
-	end
+	if (MuteClockConfigFramePanelCrafters:IsVisible()) then doPopulateCrafters(); end
+	if (MuteClockConfigFramePanelPlanner:IsVisible())  then doPopulatePlanner();  end
 end
 
 -- -------------------------------------------------------
@@ -991,58 +1641,79 @@ function mcAddFriend(name)
 	MC_NEARBY[name]    = nil;
 	MuteClock._friends = MC_FRIENDS;
 	if (MuteClockConfigFramePanelCrafters:IsVisible()) then doPopulateCrafters(); end
-	if (MuteClockConfigFramePanelNearby:IsVisible())   then doPopulateNearby();   end
 end
 
 function mcRemoveFriend(name)
 	MC_FRIENDS[name]   = nil;
 	MuteClock._friends = MC_FRIENDS;
-	if (doIsInGroup(name)) then
-		MC_NEARBY[name] = true;
-	end
+	if (doIsInGroup(name)) then MC_NEARBY[name] = true; end
 	if (MuteClockConfigFramePanelCrafters:IsVisible()) then doPopulateCrafters(); end
-	if (MuteClockConfigFramePanelNearby:IsVisible())   then doPopulateNearby();   end
 end
 
 -- -------------------------------------------------------
 -- Crafters panel
--- Respects GROUP_BY_CRAFT setting.
---
--- By friend (GROUP_BY_CRAFT=0):
---   [−] Friendname
---       Mooncloth   Ready
---       Arcanite    2h 15m
---
--- By craft (GROUP_BY_CRAFT=1):
---   Mooncloth
---   [−] Friendname   Ready
---   [−] OtherFriend  3d 2h
 -- -------------------------------------------------------
 function doPopulateCrafters()
-	local scrollFrame  = MuteClockConfigFramePanelCraftersScrollFrame;
-	local scrollBar    = MuteClockConfigFramePanelCraftersScrollBar;
-	local contentFrame = MuteClockConfigFramePanelCraftersScrollFrameContent;
+	local lScrollFrame  = MuteClockConfigFramePanelCraftersLeftScrollFrame;
+	local lScrollBar    = MuteClockConfigFramePanelCraftersLeftScrollBar;
+	local lContent      = MuteClockConfigFramePanelCraftersLeftScrollFrameContent;
+	local rScrollFrame  = MuteClockConfigFramePanelCraftersRightScrollFrame;
+	local rScrollBar    = MuteClockConfigFramePanelCraftersRightScrollBar;
+	local rContent      = MuteClockConfigFramePanelCraftersRightScrollFrameContent;
 
-	mcClearContent(contentFrame);
-	local li = 1;
-
-	local friends = {};
-	for name in pairs(MC_FRIENDS) do
-		table.insert(friends, name);
-	end
-	table.sort(friends);
-
-	if (table.getn(friends) == 0) then
-		li = mcAddLine(contentFrame, li, "No crafters added yet.", 0.5, 0.5, 0.5);
-		li = mcAddLine(contentFrame, li, "Add people from the Nearby tab.", 0.38, 0.38, 0.38);
-		mcFinaliseScroll(scrollFrame, scrollBar, contentFrame, li - 1);
-		return;
-	end
-
+	mcClearContent(lContent);
+	mcClearContent(rContent);
+	local ll  = 1;
+	local rl  = 1;
 	local now = time();
 
-	if (GROUP_BY_CRAFT == 1) then
-		-- ── By craft ────────────────────────────────────────
+	local friends = {};
+	for name in pairs(MC_FRIENDS) do table.insert(friends, name); end
+	table.sort(friends);
+
+	local detected = {};
+	for name in pairs(MC_NEARBY) do
+		if (not MC_FRIENDS[name]) then table.insert(detected, name); end
+	end
+	table.sort(detected);
+
+	-- ── LEFT: Saved Crafters ─────────────────────────────
+	if (table.getn(friends) == 0) then
+		ll = mcAddLine(lContent, ll, "No crafters saved.", 0.5, 0.5, 0.5);
+		ll = mcAddSpacer(lContent, ll);
+		ll = mcAddLine(lContent, ll, "Use [+] on the right to add", 0.38, 0.38, 0.38);
+		ll = mcAddLine(lContent, ll, "someone.", 0.38, 0.38, 0.38);
+	elseif (GROUP_BY_CRAFT == 0) then
+		local first = true;
+		for _, name in ipairs(friends) do
+			if (not first) then ll = mcAddSmallSpacer(lContent, ll); end
+			first = false;
+			local data      = MC_PEERS[name] or {};
+			local removeName = name;
+			local updated    = data._updated;
+			local stale      = updated and ((now - updated) > 172800);
+			local staleTag   = stale and " |cFFFF6600⚠|r" or "";
+
+			ll = mcAddRowWithButton(lContent, ll,
+				"|cFFFFD100" .. name .. "|r" .. staleTag,
+				"-", 0.85, 0.3, 0.3,
+				function() mcRemoveFriend(removeName); end);
+
+			local hasCraftData = false;
+			for _, entry in ipairs(TRACKED_CRAFTS) do
+				local ts = data[entry.key];
+				if (ts ~= nil) then
+					hasCraftData = true;
+					local remaining = (ts > 0) and (ts - now) or 0;
+					ll = mcAddLine(lContent, ll,
+						"  |cFF888888" .. entry.label .. "|r  " .. doFormatCrafterTime(remaining));
+				end
+			end
+			if (not hasCraftData) then
+				ll = mcAddLine(lContent, ll, "  |cFF3A3A3ANo data yet.|r");
+			end
+		end
+	else
 		local first = true;
 		for _, entry in ipairs(TRACKED_CRAFTS) do
 			local rows = {};
@@ -1053,111 +1724,71 @@ function doPopulateCrafters()
 					table.insert(rows, { name = name, remaining = remaining });
 				end
 			end
-
 			if (table.getn(rows) > 0) then
-				if (not first) then li = mcAddSpacer(contentFrame, li); end
+				if (not first) then ll = mcAddSmallSpacer(lContent, ll); end
 				first = false;
-
 				table.sort(rows, function(a, b)
 					if ((a.remaining <= 0) ~= (b.remaining <= 0)) then return a.remaining <= 0; end
 					return a.name < b.name;
 				end);
-
-				li = mcAddHeader(contentFrame, li, entry.label);
-
+				ll = mcAddHeader(lContent, ll, entry.label);
 				for _, row in ipairs(rows) do
 					local removeName = row.name;
-					local timeStr = doFormatCrafterTime(row.remaining);
-					li = mcAddRowWithButton(contentFrame, li,
-						"|cFFDDDDDD" .. row.name .. "|r  " .. timeStr,
+					ll = mcAddRowWithButton(lContent, ll,
+						"|cFFDDDDDD" .. row.name .. "|r  " .. doFormatCrafterTime(row.remaining),
 						"-", 0.85, 0.3, 0.3,
 						function() mcRemoveFriend(removeName); end);
 				end
 			end
 		end
+	end
 
+	-- ── RIGHT: Detected Users ────────────────────────────
+	if (table.getn(detected) == 0) then
+		rl = mcAddLine(rContent, rl, "No addon users detected.", 0.5, 0.5, 0.5);
+		rl = mcAddSpacer(rContent, rl);
+		rl = mcAddLine(rContent, rl, "MuteClock users in your", 0.38, 0.38, 0.38);
+		rl = mcAddLine(rContent, rl, "party, raid, or guild will", 0.38, 0.38, 0.38);
+		rl = mcAddLine(rContent, rl, "appear here automatically.", 0.38, 0.38, 0.38);
 	else
-		-- ── By friend ───────────────────────────────────────
 		local first = true;
-		for _, name in ipairs(friends) do
-			local data = MC_PEERS[name] or {};
-
-			if (not first) then li = mcAddSpacer(contentFrame, li); end
+		for _, name in ipairs(detected) do
+			if (not first) then rl = mcAddSmallSpacer(rContent, rl); end
 			first = false;
-
-			local removeName = name;
-			li = mcAddRowWithButton(contentFrame, li,
-				"|cFFFFD100" .. name .. "|r",
-				"-", 0.85, 0.3, 0.3,
-				function() mcRemoveFriend(removeName); end);
-
-			local hasCraft = false;
+			local data    = MC_PEERS[name] or {};
+			local addName = name;
+			rl = mcAddRowWithButton(rContent, rl,
+				"|cFFCCCCCC" .. name .. "|r",
+				"+", 0.2, 0.85, 0.2,
+				function() mcAddFriend(addName); end);
+			local hasCraftData = false;
 			for _, entry in ipairs(TRACKED_CRAFTS) do
 				local ts = data[entry.key];
 				if (ts ~= nil) then
-					hasCraft = true;
+					hasCraftData = true;
 					local remaining = (ts > 0) and (ts - now) or 0;
-					local timeStr = doFormatCrafterTime(remaining);
-					li = mcAddLine(contentFrame, li,
-						"    |cFF888888" .. entry.label .. "|r  " .. timeStr);
+					rl = mcAddLine(rContent, rl,
+						"  |cFF888888" .. entry.label .. "|r  " .. doFormatCrafterTime(remaining));
 				end
 			end
-			if (not hasCraft) then
-				li = mcAddLine(contentFrame, li, "    |cFF3A3A3ANo craft data yet.|r");
+			if (not hasCraftData) then
+				rl = mcAddLine(rContent, rl, "  |cFF3A3A3ANo data yet.|r");
 			end
 		end
 	end
 
-	mcFinaliseScroll(scrollFrame, scrollBar, contentFrame, li - 1);
+	mcFinaliseScroll(lScrollFrame, lScrollBar, lContent, ll - 1);
+	mcFinaliseScroll(rScrollFrame, rScrollBar, rContent, rl - 1);
 end
 
--- Shared cooldown time string for the Crafters panel
 function doFormatCrafterTime(remaining)
-	if (remaining <= 0) then
-		return "|cFF33DD33Ready|r";
-	end
+	if (remaining <= 0) then return "|cFF33DD33Ready|r"; end
 	local r, g, b;
 	if     (remaining <= 3600)  then r, g, b = 1.0, 0.75, 0.1;
 	elseif (remaining <= 14400) then r, g, b = 1.0, 0.50, 0.1;
 	else                             r, g, b = 0.55, 0.55, 0.55; end
 	return string.format("|cFF%02X%02X%02X%s|r",
-		floor(r * 255), floor(g * 255), floor(b * 255),
-		doFormatCountdown(remaining));
-end
-
--- -------------------------------------------------------
--- Nearby panel
--- -------------------------------------------------------
-function doPopulateNearby()
-	local scrollFrame  = MuteClockConfigFramePanelNearbyScrollFrame;
-	local scrollBar    = MuteClockConfigFramePanelNearbyScrollBar;
-	local contentFrame = MuteClockConfigFramePanelNearbyScrollFrameContent;
-
-	mcClearContent(contentFrame);
-	local li = 1;
-
-	local nearby = {};
-	for name in pairs(MC_NEARBY) do
-		if (not MC_FRIENDS[name]) then
-			table.insert(nearby, name);
-		end
-	end
-	table.sort(nearby);
-
-	if (table.getn(nearby) == 0) then
-		li = mcAddLine(contentFrame, li, "No addon users in your group.", 0.5, 0.5, 0.5);
-		li = mcAddLine(contentFrame, li, "Group with MuteClock users to see them here.", 0.38, 0.38, 0.38);
-	else
-		for _, name in ipairs(nearby) do
-			local addName = name;
-			li = mcAddRowWithButton(contentFrame, li,
-				"|cFFCCCCCC" .. name .. "|r",
-				"+", 0.2, 0.85, 0.2,
-				function() mcAddFriend(addName); end);
-		end
-	end
-
-	mcFinaliseScroll(scrollFrame, scrollBar, contentFrame, li - 1);
+		floor(r*255), floor(g*255), floor(b*255), doFormatCountdown(remaining));
 end
 
 -- -------------------------------------------------------
@@ -1165,37 +1796,113 @@ end
 -- -------------------------------------------------------
 function doShowTooltip()
 	if (IS_VARIABLES_LOADED ~= 1) then return; end
+	if (ClockFrame.OnboardingTimer and ClockFrame.OnboardingTimer > 0) then return; end
 	GameTooltip:SetOwner(ClockFrame, "ANCHOR_NONE");
 	GameTooltip:SetPoint("TOPRIGHT", "ClockFrame", "TOPLEFT", -4, -8);
 	doFillTooltip();
 	GameTooltip:Show();
 end
 
+function doShowBarTooltip()
+	if (IS_VARIABLES_LOADED ~= 1) then return; end
+	GameTooltip:SetOwner(ClockBarFrame, "ANCHOR_NONE");
+	GameTooltip:SetPoint("TOPRIGHT", "ClockBarFrame", "TOPLEFT", -4, 0);
+	doFillTooltip();
+	GameTooltip:Show();
+end
+
+function doShowMiniTooltip()
+	if (IS_VARIABLES_LOADED ~= 1) then return; end
+	GameTooltip:SetOwner(ClockMiniPanel, "ANCHOR_NONE");
+	GameTooltip:SetPoint("TOPRIGHT", "ClockMiniPanel", "TOPLEFT", -4, 0);
+	doFillTooltip();
+	GameTooltip:Show();
+end
+
 function doFillTooltip()
-	local data = doCollectCooldownData();
+	GameTooltip:ClearLines();
+	if (TOOLTIP_MODE == 1) then
+		doTooltipCrafters();
+	else
+		doTooltipMyCooldowns();
+	end
+	GameTooltip:AddLine(" ");
+	local modeLabel = (TOOLTIP_MODE == 1)
+		and "|cFFAAAAAA[ Crafters view ]|r"
+		or  "|cFFAAAAAA[ My Cooldowns view ]|r";
+	GameTooltip:AddLine(modeLabel);
+	GameTooltip:AddLine("|cFF444444Right-click  menu|r");
+	GameTooltip:AddLine("|cFF444444Shift+click  switch view|r");
+	GameTooltip:AddLine("|cFF444444Ctrl+click   open config|r");
+	GameTooltip:AddLine("|cFF444444Drag         move|r");
+end
+
+function doTooltipMyCooldowns()
+	local data   = doCollectCooldownData();
 	local readyN = 0;
 	local waitN  = 0;
 	for _, row in ipairs(data) do
 		if (row.remaining <= 0) then readyN = readyN + 1;
 		else waitN = waitN + 1; end
 	end
-
-	local header = "|cFFFFD100Craft Cooldowns|r";
+	local header = "|cFFFFD100My Cooldowns|r";
 	if (readyN > 0) then header = header .. "  |cFF22FF22" .. readyN .. " ready|r"; end
 	if (waitN  > 0) then header = header .. "  |cFF777777" .. waitN  .. " waiting|r"; end
 	GameTooltip:AddLine(header);
-
 	if (table.getn(data) == 0) then
 		GameTooltip:AddLine(" ");
 		GameTooltip:AddLine("No data yet. Open a trade skill window.", 0.5, 0.5, 0.5);
 		return;
 	end
-
 	GameTooltip:AddLine(" ");
-	if (GROUP_BY_CRAFT == 1) then
-		doTooltipByCraft(data);
-	else
-		doTooltipByChar(data);
+	if (GROUP_BY_CRAFT == 1) then doTooltipByCraft(data);
+	else doTooltipByChar(data); end
+end
+
+function doTooltipCrafters()
+	local now        = time();
+	local friendList = {};
+	for name in pairs(MC_FRIENDS) do table.insert(friendList, name); end
+	table.sort(friendList);
+	local totalReady = 0;
+	for _, name in ipairs(friendList) do
+		local data = MC_PEERS[name] or {};
+		for _, entry in ipairs(TRACKED_CRAFTS) do
+			local ts = data[entry.key];
+			if (ts ~= nil) then
+				local rem = (ts > 0) and (ts - now) or 0;
+				if (rem <= 0) then totalReady = totalReady + 1; end
+			end
+		end
+	end
+	local header = "|cFFFFD100Crafters|r";
+	if (totalReady > 0) then header = header .. "  |cFF22FF22" .. totalReady .. " ready|r"; end
+	GameTooltip:AddLine(header);
+	if (table.getn(friendList) == 0) then
+		GameTooltip:AddLine(" ");
+		GameTooltip:AddLine("No crafters saved.", 0.5, 0.5, 0.5);
+		GameTooltip:AddLine("Right-click > Open Config.", 0.38, 0.38, 0.38);
+		return;
+	end
+	GameTooltip:AddLine(" ");
+	for _, name in ipairs(friendList) do
+		local data    = MC_PEERS[name] or {};
+		local updated = data._updated;
+		local stale   = updated and ((now - updated) > 172800);
+		local staleStr = stale and " |cFFFF6600⚠ stale|r" or "";
+		GameTooltip:AddLine("|cFFFFD100" .. name .. "|r" .. staleStr);
+		local hasCraft = false;
+		for _, entry in ipairs(TRACKED_CRAFTS) do
+			local ts = data[entry.key];
+			if (ts ~= nil) then
+				hasCraft = true;
+				local remaining = (ts > 0) and (ts - now) or 0;
+				doTooltipCooldownLine(entry.label, remaining, nil);
+			end
+		end
+		if (not hasCraft) then
+			GameTooltip:AddLine("  |cFF505050No craft data yet.|r");
+		end
 	end
 end
 
@@ -1209,7 +1916,6 @@ function doTooltipByChar(data)
 		if ((a.remaining <= 0) ~= (b.remaining <= 0)) then return a.remaining <= 0; end
 		return a.label < b.label;
 	end);
-
 	local lastChar = nil;
 	for _, row in ipairs(data) do
 		if (row.charName ~= lastChar) then
@@ -1265,19 +1971,14 @@ function doTooltipCooldownLine(label, remaining, lastCrafted)
 		local ts = doFormatTimestamp(lastCrafted);
 		if (ts) then lastStr = "  |cFF505050" .. ts .. "|r"; end
 	end
-
 	if (remaining <= 0) then
 		local overdueStr = "";
 		if (SHOW_OVERDUE == 1) then
 			local od = doFormatOverdue(remaining);
 			if (od) then overdueStr = "  |cFFFF6600" .. od .. "|r"; end
 		end
-		GameTooltip:AddDoubleLine(
-			"  " .. label,
-			"Ready" .. overdueStr .. lastStr,
-			0.8, 0.8, 0.8,
-			0.2, 1.0, 0.2
-		);
+		GameTooltip:AddDoubleLine("  " .. label, "Ready" .. overdueStr .. lastStr,
+			0.8, 0.8, 0.8, 0.2, 1.0, 0.2);
 	else
 		local timeStr = doFormatCountdown(remaining);
 		if (SHOW_READY_TIME == 1) then
@@ -1288,8 +1989,7 @@ function doTooltipCooldownLine(label, remaining, lastCrafted)
 		local r, g, b;
 		if     (remaining <= 3600)  then r, g, b = 1, 0.75, 0.1;
 		elseif (remaining <= 14400) then r, g, b = 1, 0.5,  0.1;
-		else                             r, g, b = 0.55, 0.55, 0.55;
-		end
+		else                             r, g, b = 0.55, 0.55, 0.55; end
 		GameTooltip:AddDoubleLine("  " .. label, timeStr, 0.8, 0.8, 0.8, r, g, b);
 	end
 end
@@ -1298,6 +1998,7 @@ end
 -- Notifications
 -- -------------------------------------------------------
 function doRunNotifications()
+	local now = time();
 	for charName, charData in pairs(MuteClock) do
 		if (type(charData) == "table" and charName ~= "_peers" and charName ~= "_friends") then
 			local inScope = (SH_ALL_CHARACTERS == 1) or (charName == CURRENT_PLAYER_NAME);
@@ -1307,7 +2008,7 @@ function doRunNotifications()
 						local craftKey = string.sub(k, 1, string.len(k) - 10);
 						local entry = getCraftEntry(craftKey);
 						if (entry) then
-							local remaining = (v > 0) and (v - time()) or 0;
+							local remaining = (v > 0) and (v - now) or 0;
 							if (remaining <= 0) then
 								local nKey = craftKey .. "-notified";
 								if (not charData[nKey]) then
@@ -1316,6 +2017,22 @@ function doRunNotifications()
 										doSendNotify(charName, entry, remaining);
 									end
 								end
+								-- Overdue reminder
+								if (DO_NOTIFY == 1 and OVERDUE_REMIND > 0) then
+									local remindKey = craftKey .. "-remind";
+									local lastRemind = charData[remindKey] or 0;
+									local elapsed = now - lastRemind;
+									if (elapsed >= OVERDUE_REMIND * 3600 and lastRemind > 0) then
+										charData[remindKey] = now;
+										doSendOverdueReminder(charName, entry, remaining);
+									elseif (lastRemind == 0 and charData[nKey]) then
+										-- First reminder fires after the interval
+										charData[remindKey] = now;
+									end
+								end
+							else
+								-- Reset overdue remind timer if craft is back on cooldown
+								charData[craftKey .. "-remind"] = nil;
 							end
 						end
 					end
@@ -1337,19 +2054,33 @@ function doSendNotify(playerName, entry, remaining)
 	PlaySound("AuctionWindowOpen");
 end
 
+function doSendOverdueReminder(playerName, entry, remaining)
+	local od = doFormatOverdue(remaining);
+	if (not od) then return; end
+	local who   = (playerName == CURRENT_PLAYER_NAME) and "Your" or (playerName .. "'s");
+	local frame = SELECTED_CHAT_FRAME or DEFAULT_CHAT_FRAME;
+	frame:AddMessage("|cFF00FF00MuteClock|r  Reminder: " .. who .. " |cFFFFD100" .. entry.label .. "|r has been ready for |cFFFF6600" .. od .. "|r");
+end
+
 -- -------------------------------------------------------
 -- Dot update
 -- -------------------------------------------------------
 function doUpdateDot()
 	if (DOT_HIDDEN == 1) then return; end
-	local status, readyN = doGetDotStatus();
+	ClockFrame:SetWidth(DOT_SIZE);
+	ClockFrame:SetHeight(DOT_SIZE);
+	local status, readyN, crafterReadyN = doGetDotStatus();
 
-	if (SMART_ICON == 1 and status == 1) then
-		local entry = doGetSmartIcon();
-		if (entry) then
-			ClockDot:SetTexture(entry.icon);
+	if (ICON_MODE > 0 and status == 1) then
+		local iconTex = nil;
+		if     (ICON_MODE == 1) then local e = doGetSmartIcon(); if (e) then iconTex = e.icon; end
+		elseif (ICON_MODE == 2) then iconTex = TRACKED_CRAFTS[1].icon;
+		elseif (ICON_MODE == 3) then iconTex = TRACKED_CRAFTS[2].icon;
+		elseif (ICON_MODE == 4) then iconTex = TRACKED_CRAFTS[3].icon; end
+		if (iconTex) then
+			ClockDot:SetTexture(iconTex);
 			ClockDot:SetVertexColor(1, 1, 1, 1);
-			doUpdateBadge(readyN);
+			doUpdateBadge(readyN, crafterReadyN);
 			return;
 		end
 	end
@@ -1358,14 +2089,26 @@ function doUpdateDot()
 	if     (status == 0) then ClockDot:SetVertexColor(0.3,  0.3,  0.3,  1);
 	elseif (status == 1) then ClockDot:SetVertexColor(0.1,  0.9,  0.1,  1);
 	elseif (status == 2) then ClockDot:SetVertexColor(0.95, 0.85, 0.1,  1);
-	else                      ClockDot:SetVertexColor(0.9,  0.15, 0.15, 1);
-	end
-	doUpdateBadge(readyN);
+	else                      ClockDot:SetVertexColor(0.9,  0.15, 0.15, 1); end
+	doUpdateBadge(readyN, crafterReadyN);
 end
 
-function doUpdateBadge(readyN)
-	if (SHOW_BADGE == 1 and readyN > 0) then
-		MuteClockBadge:SetText(readyN);
+function doUpdateBadge(readyN, crafterReadyN)
+	if (SHOW_BADGE ~= 1) then
+		MuteClockBadge:Hide();
+		return;
+	end
+	local total = (readyN or 0) + (crafterReadyN or 0);
+	if (total > 0) then
+		-- Gold for own, cyan tint if any crafters ready
+		if ((crafterReadyN or 0) > 0 and (readyN or 0) == 0) then
+			MuteClockBadge:SetTextColor(0, 0.85, 1, 1);   -- cyan: crafters only
+		elseif ((crafterReadyN or 0) > 0) then
+			MuteClockBadge:SetTextColor(0.7, 0.95, 0.5, 1); -- mixed
+		else
+			MuteClockBadge:SetTextColor(1, 0.9, 0, 1);    -- gold: own only
+		end
+		MuteClockBadge:SetText(total);
 		MuteClockBadge:Show();
 	else
 		MuteClockBadge:Hide();

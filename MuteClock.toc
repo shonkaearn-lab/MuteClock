@@ -1,5 +1,5 @@
 ## Interface: 11200
-## Title: MuteClock
-## Notes: Digital clock with cooldown tracker
+## Title: MuteClock v2
+## Notes: Craft cooldown tracker and dashboard
 ## SavedVariables: MuteClock
 MuteClock.xml
